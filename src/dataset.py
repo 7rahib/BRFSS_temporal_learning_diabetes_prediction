@@ -62,9 +62,9 @@ TARGET_CANDIDATES = [
 
 # Dataset file paths in chronological order
 DATASET_PATHS = {
-    '2015': '../data/modified_diabetes_indicator_dataset_2015.csv',
-    '2019': '../data/modified_diabetes_indicator_dataset_2019.csv',
-    '2023': '../data/modified_diabetes_indicator_dataset_2023.csv',
+    '2015': './data/modified_diabetes_indicator_dataset_2015.csv',
+    '2019': './data/modified_diabetes_indicator_dataset_2019.csv',
+    '2023': './data/modified_diabetes_indicator_dataset_2023.csv',
 }
 
 
