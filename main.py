@@ -2,7 +2,7 @@
 main.py
 -------
 Temporal Incremental Continual Learning for Diabetes Prediction
-Using Elastic Weight Consolidation (EWC)
+Using Elastic Weight Consolidation (EWC) + Experience Replay
 
 HOW IT WORKS:
     The model learns from BRFSS survey data chronologically:
@@ -12,6 +12,14 @@ HOW IT WORKS:
         Task 3 = BRFSS 2023  →  EWC protects 2015 + 2019 knowledge
 
     After every task, the model is evaluated on ALL years to measure forgetting.
+
+    Three strategies are compared:
+        Phase B — Sequential, NO EWC                   (baseline / worst case)
+        Phase C — Sequential, EWC only                 (Fisher-based protection)
+        Phase D — Sequential, EWC + Replay             (Fisher + stored examples)
+
+    Phase D stores up to REPLAY_SAMPLES_PER_TASK examples from each completed
+    year and mixes them into training for subsequent years.
 
 DATA SETUP:
     Place your CSV files as:
@@ -24,14 +32,15 @@ HOW TO RUN:
     python main.py
 
 OUTPUTS:
-    results/  — 14 graphs + 4 CSV files
+    results/  — graphs + CSV files
 """
 
 import torch
 from src.dataset  import load_temporal_tasks, to_dataloader
 from src.model    import init_model
 from src.ewc      import EWC
-from src.train    import train_normal, train_ewc
+from src.replay   import ReplayBuffer
+from src.train    import train_normal, train_ewc, train_ewc_replay
 from src.evaluate import (
     evaluate, evaluate_all_tasks, full_metrics,
     compute_backward_transfer, compute_forward_transfer,
@@ -52,17 +61,15 @@ from src.evaluate import (
 EPOCHS             = 50      # training epochs per task
 LR                 = 0.001   # learning rate
 LAMBDA_EWC         = 10000   # EWC penalty strength
-                             # Raised from 2000. The scheduler was killing
-                             # weight movement, making EWC invisible even at 2000.
-                             # With fixed LR in train_ewc(), weights move more,
-                             # so lambda needs to be higher to constrain them.
-                             # Target: EWC/Task ratio of 0.5–3.0 in graph 12.
 BATCH_SIZE         = 64
 MAX_FISHER_SAMPLES = 2000
 
+# Replay buffer: how many samples to store per past task.
+# 500 means Task 3 trains on its own data + 500 from 2015 + 500 from 2019.
+# Increase for better retention at the cost of longer training.
+REPLAY_SAMPLES_PER_TASK = 500
+
 # Set to True to run standalone baselines (needed for Forward Transfer metric).
-# Set to False to skip baselines and go straight to sequential training —
-# saves significant time if you only care about BWT and EWC vs No-EWC.
 RUN_BASELINES = True
 
 
@@ -89,18 +96,6 @@ print(f"  Tasks          : {TASK_NAMES}")
 
 # ═══════════════════════════════════════════════════════════
 # PHASE A — STANDALONE BASELINES (optional)
-#
-# Train one fresh model per year independently.
-# Gives the ceiling accuracy for each year and is used as the
-# reference point for computing Forward Transfer (FWT).
-#
-# WHY IT EXISTS:
-#   FWT = accuracy on Task N before it was trained − standalone accuracy
-#   Without the standalone score, FWT cannot be computed.
-#
-# WHY YOU CAN SKIP IT:
-#   If you only care about BWT and EWC vs No-EWC comparison, set
-#   RUN_BASELINES = False. This saves ~3× the training time.
 # ═══════════════════════════════════════════════════════════
 baseline_accs = {}
 
@@ -117,15 +112,10 @@ if RUN_BASELINES:
 else:
     section("PHASE A: SKIPPED (RUN_BASELINES = False)")
     print("  Forward Transfer will not be computed.")
-    print("  Set RUN_BASELINES = True to enable it.")
 
 
 # ═══════════════════════════════════════════════════════════
 # PHASE B — SEQUENTIAL WITHOUT EWC
-#
-# One model trains through all three years with no protection.
-# Shows catastrophic forgetting — this is the baseline that
-# EWC is compared against.
 # ═══════════════════════════════════════════════════════════
 section("PHASE B: SEQUENTIAL — WITHOUT EWC")
 
@@ -152,25 +142,7 @@ noewc_metrics = [
 
 
 # ═══════════════════════════════════════════════════════════
-# PHASE C — SEQUENTIAL WITH EWC
-#
-# Same chronological training, but after each year:
-#   1. Compute the Fisher Information Matrix
-#   2. Save the current weights as θ*
-#   3. Next year's training includes an EWC penalty that
-#      resists changes to important weights
-#
-# CRITICAL FIX APPLIED:
-#   train_ewc() now uses a FIXED learning rate with no scheduler.
-#   Previously, ReduceLROnPlateau dropped LR to ~0.000031, which
-#   made weight changes so small that (theta - theta*)^2 was
-#   negligible — effectively disabling EWC regardless of lambda.
-#   With fixed LR, weights move consistently and EWC stays active.
-#
-# LAMBDA RAISED TO 10000:
-#   With fixed LR, weights now move more per epoch, so a higher
-#   lambda is needed to provide meaningful resistance.
-#   Target: EWC/Task ratio of 0.5–3.0 (check graph 12).
+# PHASE C — SEQUENTIAL WITH EWC (no replay)
 # ═══════════════════════════════════════════════════════════
 section("PHASE C: SEQUENTIAL — WITH EWC (fixed LR, lambda=10000)")
 
@@ -212,7 +184,89 @@ ewc_metrics = [
 
 
 # ═══════════════════════════════════════════════════════════
+# PHASE D — SEQUENTIAL WITH EWC + REPLAY
+#
+# Same chronological training as Phase C, but:
+#   1. After each task, store REPLAY_SAMPLES_PER_TASK examples in the buffer.
+#   2. When training on the next task, pass a combined DataLoader to
+#      train_ewc_replay() that mixes current data with buffered past samples.
+#   3. EWC penalty still applied on top — both mechanisms work together.
+#
+# HOW THE REPLAY BUFFER IS USED:
+#   Task 1 (2015): train normally, then add 2015 samples to buffer.
+#   Task 2 (2019): build combined loader (2019 + 500 from 2015),
+#                  train with EWC + replay, then add 2019 samples.
+#   Task 3 (2023): build combined loader (2023 + 500 from 2015 + 500 from 2019),
+#                  train with EWC + replay.
+#
+# NOTE: We use the raw numpy arrays (tasks[i]['X_train']) for the replay buffer,
+#       not the DataLoaders. The buffer handles its own DataLoader creation
+#       internally via get_combined_loader().
+# ═══════════════════════════════════════════════════════════
+section("PHASE D: SEQUENTIAL — WITH EWC + REPLAY")
+
+print(f"\n  Replay buffer: {REPLAY_SAMPLES_PER_TASK} samples per past task")
+
+replay_model     = init_model(input_size)
+replay_log       = []
+replay_histories = []
+replay_ewc_objs  = []
+replay_buffer    = ReplayBuffer(samples_per_task=REPLAY_SAMPLES_PER_TASK)
+
+for i, name in enumerate(TASK_NAMES):
+
+    if i == 0:
+        # First task — no past data yet, train normally
+        print(f"\n  [EWC+Replay] Training on {name} (first year — no EWC or replay yet)...")
+        replay_model, h = train_normal(replay_model, train_loaders[i], epochs=EPOCHS, lr=LR)
+
+    else:
+        # Build the combined loader: current task data + all buffered past samples
+        print(f"\n  [EWC+Replay] Building combined loader for {name}...")
+        combined_loader = replay_buffer.get_combined_loader(
+            tasks[i]['X_train'], tasks[i]['y_train'],
+            batch_size=BATCH_SIZE
+        )
+        replay_buffer.summary()
+
+        print(f"\n  [EWC+Replay] Training on {name} "
+              f"(EWC protecting {i} year(s) + replay)...")
+        replay_model, h = train_ewc_replay(
+            replay_model, combined_loader,
+            replay_ewc_objs, LAMBDA_EWC, EPOCHS, LR
+        )
+
+    replay_histories.append(h)
+
+    # Evaluate on all tasks after this one
+    print(f"\n  Evaluating all years after {name}:")
+    replay_log.append(evaluate_all_tasks(replay_model, test_loaders, TASK_NAMES))
+
+    # Compute and store Fisher (on current task data only — not the combined set)
+    print(f"\n  Computing normalised Fisher for {name}...")
+    replay_ewc_objs.append(
+        EWC(replay_model, train_loaders[i],
+            max_samples=MAX_FISHER_SAMPLES, normalise=True)
+    )
+
+    # Store samples from this task in the replay buffer for future tasks
+    print(f"\n  Adding {name} to replay buffer...")
+    replay_buffer.add_task(name, tasks[i]['X_train'], tasks[i]['y_train'])
+
+section("PHASE D: TRANSFER METRICS — EWC + Replay")
+bwt_replay, per_bwt_replay = compute_backward_transfer(replay_log, TASK_NAMES)
+fwt_replay, per_fwt_replay = compute_forward_transfer(replay_log, TASK_NAMES, baseline_accs)
+
+print("\n  Full metrics — EWC + Replay final model:")
+replay_metrics = [
+    full_metrics(replay_model, loader, name)
+    for loader, name in zip(test_loaders, TASK_NAMES)
+]
+
+
+# ═══════════════════════════════════════════════════════════
 # PHASE C2 — PER-YEAR THRESHOLD CALIBRATION
+# (EWC and EWC+Replay models)
 # ═══════════════════════════════════════════════════════════
 section("PHASE C2: PER-YEAR THRESHOLD CALIBRATION")
 
@@ -221,6 +275,9 @@ noewc_thresholds = calibrate_all_tasks(noewc_model, test_loaders, TASK_NAMES)
 
 print("\n  Calibrating thresholds — EWC model...")
 ewc_thresholds = calibrate_all_tasks(ewc_model, test_loaders, TASK_NAMES)
+
+print("\n  Calibrating thresholds — EWC + Replay model...")
+replay_thresholds = calibrate_all_tasks(replay_model, test_loaders, TASK_NAMES)
 
 print("\n  Calibrated metrics — No-EWC model:")
 noewc_metrics_cal = [
@@ -234,21 +291,33 @@ ewc_metrics_cal = [
     for loader, name in zip(test_loaders, TASK_NAMES)
 ]
 
+print("\n  Calibrated metrics — EWC + Replay model:")
+replay_metrics_cal = [
+    full_metrics_calibrated(replay_model, loader, name, replay_thresholds[name])
+    for loader, name in zip(test_loaders, TASK_NAMES)
+]
+
 
 # ═══════════════════════════════════════════════════════════
-# PHASE D — GENERATE ALL GRAPHS AND SAVE RESULTS
+# PHASE E — SAVE RESULTS AND GENERATE GRAPHS
 # ═══════════════════════════════════════════════════════════
-section("PHASE D: SAVING RESULTS AND GENERATING 14 GRAPHS")
+section("PHASE E: SAVING RESULTS AND GENERATING GRAPHS")
 
+# Save CSV results for all three strategies
 save_results(noewc_log,   TASK_NAMES, filename='results_noewc.csv')
 save_results(ewc_log,     TASK_NAMES, filename='results_ewc.csv')
-save_full_metrics(noewc_metrics,      filename='metrics_noewc.csv')
-save_full_metrics(ewc_metrics,        filename='metrics_ewc.csv')
+save_results(replay_log,  TASK_NAMES, filename='results_replay.csv')
 
-noewc_final = noewc_log[-1]
-ewc_final   = ewc_log[-1]
+save_full_metrics(noewc_metrics,   filename='metrics_noewc.csv')
+save_full_metrics(ewc_metrics,     filename='metrics_ewc.csv')
+save_full_metrics(replay_metrics,  filename='metrics_replay.csv')
 
-print("\n  Generating graphs...")
+# Final-stage accuracy dicts for all three strategies
+noewc_final  = noewc_log[-1]
+ewc_final    = ewc_log[-1]
+replay_final = replay_log[-1]
+
+print("\n  Generating graphs (existing set)...")
 plot_noewc_vs_ewc(noewc_final, ewc_final, TASK_NAMES)
 plot_ewc_accuracy_over_stages(ewc_log, TASK_NAMES)
 plot_noewc_accuracy_over_stages(noewc_log, TASK_NAMES)
@@ -265,6 +334,16 @@ plot_ewc_penalty_magnitude(ewc_histories, TASK_NAMES)
 plot_calibrated_metrics(noewc_metrics_cal, ewc_metrics_cal)
 plot_threshold_comparison(noewc_thresholds, ewc_thresholds, TASK_NAMES)
 
+print("\n  Generating replay comparison graphs...")
+# Replay-specific heatmap (shows forgetting under EWC+Replay)
+plot_forgetting_heatmap(
+    replay_log, TASK_NAMES,
+    title_suffix='With EWC + Replay',
+    filename='10c_heatmap_replay.png'
+)
+# Training loss curves for the replay model
+plot_training_loss_curves(replay_histories, TASK_NAMES)
+
 
 # ─────────────────────────────────────────
 # FINAL SUMMARY
@@ -273,33 +352,37 @@ section("FINAL SUMMARY")
 
 print(f"\n  Temporal tasks : 2015 → 2019 → 2023")
 print(f"  Lambda         : {LAMBDA_EWC} | Fisher: normalised | Epochs: {EPOCHS}")
-print(f"  EWC LR         : {LR} fixed (no scheduler) | Normal LR: {LR} with scheduler")
+print(f"  EWC LR         : {LR} fixed | Normal LR: {LR} with scheduler")
+print(f"  Replay buffer  : {REPLAY_SAMPLES_PER_TASK} samples per past task")
 
-print("\n  NO-EWC — Final accuracy after all 3 years:")
-for name, acc in noewc_final.items():
-    print(f"    {name}: {acc}%")
+print("\n  ── Final accuracy after all 3 years ──")
+print(f"  {'Year':<25} {'No-EWC':>10} {'EWC':>10} {'EWC+Replay':>12}")
+print(f"  {'-'*57}")
+for name in TASK_NAMES:
+    a = noewc_final.get(name, 'N/A')
+    b = ewc_final.get(name, 'N/A')
+    c = replay_final.get(name, 'N/A')
+    print(f"  {name:<25} {str(a):>10} {str(b):>10} {str(c):>12}")
 
-print("\n  EWC — Final accuracy after all 3 years:")
-for name, acc in ewc_final.items():
-    print(f"    {name}: {acc}%")
-
-print(f"\n  Backward Transfer (BWT):")
-print(f"    No-EWC : {bwt_noewc:+.2f}%  (negative = forgetting | 0 = perfect)")
-print(f"    EWC    : {bwt_ewc:+.2f}%  (closer to 0 = EWC working)")
+print(f"\n  ── Backward Transfer (BWT) ──")
+print(f"  No-EWC     : {bwt_noewc:+.2f}%  (negative = forgetting)")
+print(f"  EWC        : {bwt_ewc:+.2f}%  (closer to 0 = EWC working)")
+print(f"  EWC+Replay : {bwt_replay:+.2f}%  (should be best — closest to 0)")
 
 if baseline_accs:
-    print(f"\n  Forward Transfer (FWT):")
-    print(f"    No-EWC : {fwt_noewc:+.2f}%")
-    print(f"    EWC    : {fwt_ewc:+.2f}%")
+    print(f"\n  ── Forward Transfer (FWT) ──")
+    print(f"  No-EWC     : {fwt_noewc:+.2f}%")
+    print(f"  EWC        : {fwt_ewc:+.2f}%")
+    print(f"  EWC+Replay : {fwt_replay:+.2f}%")
 
-print("\n  Calibrated Recall (EWC):")
+print("\n  ── Calibrated Recall ──")
+print(f"\n  EWC:")
 for m in ewc_metrics_cal:
     print(f"    {m['Task']}: Recall={m['Recall']}%  F1={m['F1']}%  (threshold={m['Threshold']})")
+print(f"\n  EWC + Replay:")
+for m in replay_metrics_cal:
+    print(f"    {m['Task']}: Recall={m['Recall']}%  F1={m['F1']}%  (threshold={m['Threshold']})")
 
-print("\n  Graph 12 — EWC penalty ratio:")
-print("    Target: 0.5–3.0  (EWC balanced with task loss)")
-print("    If < 0.1  → increase LAMBDA_EWC (try 20000 or 50000)")
-print("    If > 5.0  → reduce  LAMBDA_EWC (try 5000)")
-print("\n  All 14 graphs and 4 CSV files saved to results/")
+print("\n  All graphs and CSV files saved to results/")
 print("DONE.")
 print("=" * 65)
