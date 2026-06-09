@@ -43,12 +43,13 @@ from src.replay   import ReplayBuffer
 from src.train    import train_normal, train_ewc, train_ewc_replay
 from src.evaluate import (
     evaluate, evaluate_all_tasks, full_metrics,
-    compute_backward_transfer, compute_forward_transfer,
+    compute_backward_transfer,
+    # compute_forward_transfer,
     calibrate_all_tasks, full_metrics_calibrated,
     save_results, save_full_metrics,
     plot_noewc_vs_ewc, plot_ewc_accuracy_over_stages,
     plot_noewc_accuracy_over_stages, plot_backward_transfer,
-    plot_forward_transfer, plot_transfer_summary,
+    # plot_forward_transfer, plot_transfer_summary,
     plot_confusion_matrices_comparison, plot_roc_comparison,
     plot_metrics_comparison, plot_forgetting_heatmap,
     plot_training_loss_curves, plot_ewc_penalty_magnitude,
@@ -58,16 +59,16 @@ from src.evaluate import (
 # ─────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────
-EPOCHS             = 50      # training epochs per task
-LR                 = 0.001   # learning rate
-LAMBDA_EWC         = 10000   # EWC penalty strength
+EPOCHS             = 30      # training epochs per task
+LR                 = 1e-3   # learning rate
+LAMBDA_EWC         = 500   # EWC penalty strength
 BATCH_SIZE         = 64
-MAX_FISHER_SAMPLES = 2000
+MAX_FISHER_SAMPLES = 1000
 
 # Replay buffer: how many samples to store per past task.
 # 500 means Task 3 trains on its own data + 500 from 2015 + 500 from 2019.
 # Increase for better retention at the cost of longer training.
-REPLAY_SAMPLES_PER_TASK = 500
+REPLAY_SAMPLES_PER_TASK = 2000
 
 # Set to True to run standalone baselines (needed for Forward Transfer metric).
 RUN_BASELINES = True
@@ -94,24 +95,24 @@ print(f"\n  Input features : {input_size}")
 print(f"  Tasks          : {TASK_NAMES}")
 
 
-# ═══════════════════════════════════════════════════════════
-# PHASE A — STANDALONE BASELINES (optional)
-# ═══════════════════════════════════════════════════════════
-baseline_accs = {}
+# # ═══════════════════════════════════════════════════════════
+# # PHASE A — STANDALONE BASELINES (optional)
+# # ═══════════════════════════════════════════════════════════
+# baseline_accs = {}
 
-if RUN_BASELINES:
-    section("PHASE A: STANDALONE BASELINES (one fresh model per year)")
-    for i, name in enumerate(TASK_NAMES):
-        print(f"\n  Training standalone model for: {name}")
-        m    = init_model(input_size)
-        m, _ = train_normal(m, train_loaders[i], epochs=EPOCHS, lr=LR)
-        acc  = evaluate(m, test_loaders[i])
-        baseline_accs[name] = round(acc * 100, 2)
-        print(f"  Standalone accuracy: {acc*100:.2f}%")
-    print(f"\n  Baselines: {baseline_accs}")
-else:
-    section("PHASE A: SKIPPED (RUN_BASELINES = False)")
-    print("  Forward Transfer will not be computed.")
+# if RUN_BASELINES:
+#     section("PHASE A: STANDALONE BASELINES (one fresh model per year)")
+#     for i, name in enumerate(TASK_NAMES):
+#         print(f"\n  Training standalone model for: {name}")
+#         m    = init_model(input_size)
+#         m, _ = train_normal(m, train_loaders[i], epochs=EPOCHS, lr=LR)
+#         acc  = evaluate(m, test_loaders[i])
+#         baseline_accs[name] = round(acc * 100, 2)
+#         print(f"  Standalone accuracy: {acc*100:.2f}%")
+#     print(f"\n  Baselines: {baseline_accs}")
+# else:
+#     section("PHASE A: SKIPPED (RUN_BASELINES = False)")
+#     print("  Forward Transfer will not be computed.")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -128,11 +129,11 @@ for i, name in enumerate(TASK_NAMES):
     noewc_model, h = train_normal(noewc_model, train_loaders[i], epochs=EPOCHS, lr=LR)
     noewc_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
-    noewc_log.append(evaluate_all_tasks(noewc_model, test_loaders, TASK_NAMES))
+    noewc_log.append(evaluate_all_tasks(noewc_model, test_loaders, TASK_NAMES, i))
 
 section("PHASE B: TRANSFER METRICS — No-EWC")
 bwt_noewc, per_bwt_noewc = compute_backward_transfer(noewc_log, TASK_NAMES)
-fwt_noewc, per_fwt_noewc = compute_forward_transfer(noewc_log, TASK_NAMES, baseline_accs)
+# fwt_noewc, per_fwt_noewc = compute_forward_transfer(noewc_log, TASK_NAMES, baseline_accs)
 
 print("\n  Full metrics — No-EWC final model:")
 noewc_metrics = [
@@ -164,7 +165,7 @@ for i, name in enumerate(TASK_NAMES):
 
     ewc_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
-    ewc_log.append(evaluate_all_tasks(ewc_model, test_loaders, TASK_NAMES))
+    ewc_log.append(evaluate_all_tasks(ewc_model, test_loaders, TASK_NAMES, i))
 
     print(f"\n  Computing normalised Fisher for {name}...")
     ewc_objects.append(
@@ -174,7 +175,7 @@ for i, name in enumerate(TASK_NAMES):
 
 section("PHASE C: TRANSFER METRICS — EWC")
 bwt_ewc, per_bwt_ewc = compute_backward_transfer(ewc_log, TASK_NAMES)
-fwt_ewc, per_fwt_ewc = compute_forward_transfer(ewc_log, TASK_NAMES, baseline_accs)
+# fwt_ewc, per_fwt_ewc = compute_forward_transfer(ewc_log, TASK_NAMES, baseline_accs)
 
 print("\n  Full metrics — EWC final model:")
 ewc_metrics = [
@@ -240,7 +241,7 @@ for i, name in enumerate(TASK_NAMES):
 
     # Evaluate on all tasks after this one
     print(f"\n  Evaluating all years after {name}:")
-    replay_log.append(evaluate_all_tasks(replay_model, test_loaders, TASK_NAMES))
+    replay_log.append(evaluate_all_tasks(replay_model, test_loaders, TASK_NAMES, i))
 
     # Compute and store Fisher (on current task data only — not the combined set)
     print(f"\n  Computing normalised Fisher for {name}...")
@@ -255,7 +256,7 @@ for i, name in enumerate(TASK_NAMES):
 
 section("PHASE D: TRANSFER METRICS — EWC + Replay")
 bwt_replay, per_bwt_replay = compute_backward_transfer(replay_log, TASK_NAMES)
-fwt_replay, per_fwt_replay = compute_forward_transfer(replay_log, TASK_NAMES, baseline_accs)
+# fwt_replay, per_fwt_replay = compute_forward_transfer(replay_log, TASK_NAMES, baseline_accs)
 
 print("\n  Full metrics — EWC + Replay final model:")
 replay_metrics = [
@@ -322,8 +323,8 @@ plot_noewc_vs_ewc(noewc_final, ewc_final, TASK_NAMES)
 plot_ewc_accuracy_over_stages(ewc_log, TASK_NAMES)
 plot_noewc_accuracy_over_stages(noewc_log, TASK_NAMES)
 plot_backward_transfer(per_bwt_noewc, per_bwt_ewc)
-plot_forward_transfer(per_fwt_noewc, per_fwt_ewc)
-plot_transfer_summary(bwt_noewc, bwt_ewc, fwt_noewc, fwt_ewc)
+# plot_forward_transfer(per_fwt_noewc, per_fwt_ewc)
+# plot_transfer_summary(bwt_noewc, bwt_ewc, fwt_noewc, fwt_ewc)
 plot_confusion_matrices_comparison(noewc_model, ewc_model, test_loaders, TASK_NAMES)
 plot_roc_comparison(noewc_model, ewc_model, test_loaders, TASK_NAMES)
 plot_metrics_comparison(noewc_metrics, ewc_metrics)
@@ -369,11 +370,11 @@ print(f"  No-EWC     : {bwt_noewc:+.2f}%  (negative = forgetting)")
 print(f"  EWC        : {bwt_ewc:+.2f}%  (closer to 0 = EWC working)")
 print(f"  EWC+Replay : {bwt_replay:+.2f}%  (should be best — closest to 0)")
 
-if baseline_accs:
-    print(f"\n  ── Forward Transfer (FWT) ──")
-    print(f"  No-EWC     : {fwt_noewc:+.2f}%")
-    print(f"  EWC        : {fwt_ewc:+.2f}%")
-    print(f"  EWC+Replay : {fwt_replay:+.2f}%")
+# if baseline_accs:
+#     print(f"\n  ── Forward Transfer (FWT) ──")
+#     print(f"  No-EWC     : {fwt_noewc:+.2f}%")
+#     print(f"  EWC        : {fwt_ewc:+.2f}%")
+#     print(f"  EWC+Replay : {fwt_replay:+.2f}%")
 
 print("\n  ── Calibrated Recall ──")
 print(f"\n  EWC:")

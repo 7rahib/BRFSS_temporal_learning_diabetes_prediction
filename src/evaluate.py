@@ -123,13 +123,16 @@ def full_metrics(model, dataloader, task_name):
     }
 
 
-def evaluate_all_tasks(model, test_loaders, task_names):
-    """Evaluate the model on every task. Returns {task_name: accuracy%}."""
+def evaluate_all_tasks(model, test_loaders, task_names, current_task_idx):
     results = {}
-    for name, loader in zip(task_names, test_loaders):
-        acc         = evaluate(model, loader)
-        results[name] = round(acc * 100, 2)
-        print(f"    {name}: {acc*100:.2f}%")
+
+    for j in range(current_task_idx + 1):
+        acc = evaluate(model, test_loaders[j])
+
+        results[task_names[j]] = round(acc * 100, 2)
+
+        print(f"    {task_names[j]}: {acc * 100:.2f}%")
+
     return results
 
 
@@ -170,36 +173,36 @@ def compute_backward_transfer(results_log, task_names):
     return overall, per_task_bwt
 
 
-def compute_forward_transfer(results_log, task_names, baseline_accs):
-    """
-    Forward Transfer (FWT): did learning earlier years help with later years?
+# def compute_forward_transfer(results_log, task_names, baseline_accs):
+#     """
+#     Forward Transfer (FWT): did learning earlier years help with later years?
 
-    FWT = average [ R(i-1, i) - baseline_i ] for tasks i > 1
+#     FWT = average [ R(i-1, i) - baseline_i ] for tasks i > 1
 
-    R(i-1, i)  = accuracy on task i measured before task i was trained
-    baseline_i = standalone accuracy (Phase A) — the reference point
+#     R(i-1, i)  = accuracy on task i measured before task i was trained
+#     baseline_i = standalone accuracy (Phase A) — the reference point
 
-    Positive FWT → knowledge from earlier years transferred forward.
-    Negative FWT → earlier years interfered with later year learning.
-    """
-    per_task_fwt = {}
+#     Positive FWT → knowledge from earlier years transferred forward.
+#     Negative FWT → earlier years interfered with later year learning.
+#     """
+#     per_task_fwt = {}
 
-    for i in range(1, len(task_names)):
-        name               = task_names[i]
-        acc_before_trained = results_log[i - 1].get(name)
-        baseline           = baseline_accs.get(name)
+#     for i in range(1, len(task_names)):
+#         name               = task_names[i]
+#         acc_before_trained = results_log[i - 1].get(name)
+#         baseline           = baseline_accs.get(name)
 
-        if acc_before_trained is not None and baseline is not None:
-            per_task_fwt[name] = round(acc_before_trained - baseline, 2)
+#         if acc_before_trained is not None and baseline is not None:
+#             per_task_fwt[name] = round(acc_before_trained - baseline, 2)
 
-    overall = round(np.mean(list(per_task_fwt.values())), 2) if per_task_fwt else 0.0
+#     overall = round(np.mean(list(per_task_fwt.values())), 2) if per_task_fwt else 0.0
 
-    print(f"\n  Forward Transfer (FWT): {overall:+.2f}%")
-    for name, val in per_task_fwt.items():
-        status = '✓ positive' if val >= 0 else '✗ negative'
-        print(f"    {name}: {val:+.2f}%  {status}")
+#     print(f"\n  Forward Transfer (FWT): {overall:+.2f}%")
+#     for name, val in per_task_fwt.items():
+#         status = '✓ positive' if val >= 0 else '✗ negative'
+#         print(f"    {name}: {val:+.2f}%  {status}")
 
-    return overall, per_task_fwt
+#     return overall, per_task_fwt
 
 
 # ──────────────────────────────────────────
@@ -404,54 +407,54 @@ def plot_backward_transfer(per_bwt_noewc, per_bwt_ewc, output_dir='results'):
     _save('04_backward_transfer.png', output_dir)
 
 
-def plot_forward_transfer(per_fwt_noewc, per_fwt_ewc, output_dir='results'):
-    """Bar chart: forward transfer per task — No-EWC vs EWC."""
-    tasks     = list(per_fwt_ewc.keys())
-    if not tasks:
-        return
-    noewc_vals = [per_fwt_noewc.get(t, 0) for t in tasks]
-    ewc_vals   = [per_fwt_ewc.get(t, 0)   for t in tasks]
-    x          = np.arange(len(tasks))
-    w          = 0.35
+# def plot_forward_transfer(per_fwt_noewc, per_fwt_ewc, output_dir='results'):
+#     """Bar chart: forward transfer per task — No-EWC vs EWC."""
+#     tasks     = list(per_fwt_ewc.keys())
+#     if not tasks:
+#         return
+#     noewc_vals = [per_fwt_noewc.get(t, 0) for t in tasks]
+#     ewc_vals   = [per_fwt_ewc.get(t, 0)   for t in tasks]
+#     x          = np.arange(len(tasks))
+#     w          = 0.35
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.bar(x - w/2, noewc_vals, w, label='Without EWC', color='#EF5350', alpha=0.85)
-    ax.bar(x + w/2, ewc_vals,   w, label='With EWC',    color='#42A5F5', alpha=0.85)
-    ax.axhline(0, color='black', linewidth=0.8, linestyle='--')
-    ax.set_title('Forward Transfer (FWT) — No-EWC vs EWC\n(positive = earlier years helped future years)',
-                 fontsize=13, fontweight='bold')
-    ax.set_xlabel('Year / Task')
-    ax.set_ylabel('FWT (%)')
-    ax.set_xticks(x)
-    ax.set_xticklabels([t.split('—')[-1].strip() for t in tasks])
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
-    _save('05_forward_transfer.png', output_dir)
+#     fig, ax = plt.subplots(figsize=(10, 6))
+#     ax.bar(x - w/2, noewc_vals, w, label='Without EWC', color='#EF5350', alpha=0.85)
+#     ax.bar(x + w/2, ewc_vals,   w, label='With EWC',    color='#42A5F5', alpha=0.85)
+#     ax.axhline(0, color='black', linewidth=0.8, linestyle='--')
+#     ax.set_title('Forward Transfer (FWT) — No-EWC vs EWC\n(positive = earlier years helped future years)',
+#                  fontsize=13, fontweight='bold')
+#     ax.set_xlabel('Year / Task')
+#     ax.set_ylabel('FWT (%)')
+#     ax.set_xticks(x)
+#     ax.set_xticklabels([t.split('—')[-1].strip() for t in tasks])
+#     ax.legend()
+#     ax.grid(True, alpha=0.3, axis='y')
+#     _save('05_forward_transfer.png', output_dir)
 
 
-def plot_transfer_summary(bwt_noewc, bwt_ewc, fwt_noewc, fwt_ewc, output_dir='results'):
-    """Single chart showing overall BWT and FWT for both models."""
-    metrics   = ['Backward Transfer (BWT)', 'Forward Transfer (FWT)']
-    noewc_v   = [bwt_noewc, fwt_noewc]
-    ewc_v     = [bwt_ewc,   fwt_ewc]
-    x         = np.arange(len(metrics))
-    w         = 0.35
+# def plot_transfer_summary(bwt_noewc, bwt_ewc, fwt_noewc, fwt_ewc, output_dir='results'):
+#     """Single chart showing overall BWT and FWT for both models."""
+#     metrics   = ['Backward Transfer (BWT)', 'Forward Transfer (FWT)']
+#     noewc_v   = [bwt_noewc, fwt_noewc]
+#     ewc_v     = [bwt_ewc,   fwt_ewc]
+#     x         = np.arange(len(metrics))
+#     w         = 0.35
 
-    fig, ax = plt.subplots(figsize=(9, 6))
-    ax.bar(x - w/2, noewc_v, w, label='Without EWC', color='#EF5350', alpha=0.85)
-    ax.bar(x + w/2, ewc_v,   w, label='With EWC',    color='#42A5F5', alpha=0.85)
-    for i, (nv, ev) in enumerate(zip(noewc_v, ewc_v)):
-        ax.text(i - w/2, nv + (0.3 if nv >= 0 else -1.5), f'{nv:+.2f}%', ha='center', fontsize=11, fontweight='bold')
-        ax.text(i + w/2, ev + (0.3 if ev >= 0 else -1.5), f'{ev:+.2f}%', ha='center', fontsize=11, fontweight='bold')
-    ax.axhline(0, color='black', linewidth=0.8, linestyle='--')
-    ax.set_title('Transfer Learning Summary\n(BWT: closer to 0 is better | FWT: higher is better)',
-                 fontsize=13, fontweight='bold')
-    ax.set_xticks(x)
-    ax.set_xticklabels(metrics)
-    ax.set_ylabel('Score (%)')
-    ax.legend()
-    ax.grid(True, alpha=0.3, axis='y')
-    _save('06_transfer_summary.png', output_dir)
+#     fig, ax = plt.subplots(figsize=(9, 6))
+#     ax.bar(x - w/2, noewc_v, w, label='Without EWC', color='#EF5350', alpha=0.85)
+#     ax.bar(x + w/2, ewc_v,   w, label='With EWC',    color='#42A5F5', alpha=0.85)
+#     for i, (nv, ev) in enumerate(zip(noewc_v, ewc_v)):
+#         ax.text(i - w/2, nv + (0.3 if nv >= 0 else -1.5), f'{nv:+.2f}%', ha='center', fontsize=11, fontweight='bold')
+#         ax.text(i + w/2, ev + (0.3 if ev >= 0 else -1.5), f'{ev:+.2f}%', ha='center', fontsize=11, fontweight='bold')
+#     ax.axhline(0, color='black', linewidth=0.8, linestyle='--')
+#     ax.set_title('Transfer Learning Summary\n(BWT: closer to 0 is better | FWT: higher is better)',
+#                  fontsize=13, fontweight='bold')
+#     ax.set_xticks(x)
+#     ax.set_xticklabels(metrics)
+#     ax.set_ylabel('Score (%)')
+#     ax.legend()
+#     ax.grid(True, alpha=0.3, axis='y')
+#     _save('06_transfer_summary.png', output_dir)
 
 
 def plot_confusion_matrices_comparison(noewc_model, ewc_model, test_loaders, task_names, output_dir='results'):
