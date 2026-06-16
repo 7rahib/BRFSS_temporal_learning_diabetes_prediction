@@ -38,7 +38,7 @@ from src.ewc      import EWC
 from src.replay   import ReplayBuffer
 from src.train    import train_normal, train_ewc, train_ewc_replay
 from src.evaluate import (
-    evaluate, evaluate_all_tasks, full_metrics,
+    evaluate, evaluate_seen_tasks, full_metrics,
     compute_backward_transfer, compute_forward_transfer,
     calibrate_all_tasks, full_metrics_calibrated,
     save_results, save_full_metrics,
@@ -62,9 +62,9 @@ from src.evaluate import (
 # ─────────────────────────────────────────
 EPOCHS             = 50
 LR                 = 0.001
-LAMBDA_EWC         = 10000   # Higher lambda needed with fixed LR in EWC training
+LAMBDA_EWC         = 10   # Higher lambda needed with fixed LR in EWC training
 BATCH_SIZE         = 64
-MAX_FISHER_SAMPLES = 2000
+MAX_FISHER_SAMPLES = 5000
 
 # Replay buffer settings
 REPLAY_SAMPLES_PER_TASK = 2000   # samples stored per past task (up from 500)
@@ -111,7 +111,7 @@ print(f"  Lambda EWC     : {LAMBDA_EWC} | Replay samples: {REPLAY_SAMPLES_PER_TA
 # ═══════════════════════════════════════════════════════════
 section("PHASE A: SEQUENTIAL — WITHOUT EWC (forgetting baseline)")
 
-noewc_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT)
+noewc_model     = init_model(input_size)
 noewc_log       = []
 noewc_histories = []
 
@@ -120,7 +120,7 @@ for i, name in enumerate(TASK_NAMES):
     noewc_model, h = train_normal(noewc_model, train_loaders[i], EPOCHS, LR)
     noewc_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
-    noewc_log.append(evaluate_all_tasks(noewc_model, test_loaders, TASK_NAMES))
+    noewc_log.append(evaluate_seen_tasks(noewc_model, test_loaders, TASK_NAMES, i))
 
 # Use Phase A log as FWT baseline — accuracy on Task i before Task i was trained
 # is already recorded in noewc_log[i-1][task_i_name]
@@ -146,7 +146,7 @@ noewc_metrics = [full_metrics(noewc_model, loader, name)
 # ═══════════════════════════════════════════════════════════
 section("PHASE B: SEQUENTIAL — WITH EWC (Transformer + fixed LR)")
 
-ewc_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT)
+ewc_model     = init_model(input_size)
 ewc_log       = []
 ewc_histories = []
 ewc_objects   = []
@@ -162,7 +162,7 @@ for i, name in enumerate(TASK_NAMES):
 
     ewc_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
-    ewc_log.append(evaluate_all_tasks(ewc_model, test_loaders, TASK_NAMES))
+    ewc_log.append(evaluate_seen_tasks(ewc_model, test_loaders, TASK_NAMES, i))
 
     print(f"\n  Computing normalised Fisher for {name}...")
     ewc_objects.append(EWC(ewc_model, train_loaders[i], MAX_FISHER_SAMPLES, normalise=True))
@@ -190,7 +190,7 @@ ewc_metrics = [full_metrics(ewc_model, loader, name)
 # ═══════════════════════════════════════════════════════════
 section("PHASE C: SEQUENTIAL — WITH EWC + REPLAY BUFFER")
 
-replay_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT)
+replay_model     = init_model(input_size)
 replay_log       = []
 replay_histories = []
 replay_ewc_objects = []
@@ -214,7 +214,7 @@ for i, name in enumerate(TASK_NAMES):
 
     replay_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
-    replay_log.append(evaluate_all_tasks(replay_model, test_loaders, TASK_NAMES))
+    replay_log.append(evaluate_seen_tasks(replay_model, test_loaders, TASK_NAMES, i))
 
     # Store samples from this task before moving on
     print(f"\n  Storing replay samples from {name}...")

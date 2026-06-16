@@ -99,13 +99,16 @@ def full_metrics(model, dataloader, task_name):
             'F1': round(f1*100,2), 'AUC': round(float(auc),4)}
 
 
-def evaluate_all_tasks(model, test_loaders, task_names):
-    """Evaluate on all tasks. Returns {name: accuracy%}."""
+def evaluate_seen_tasks(model, test_loaders, task_names, current_task_idx):
     results = {}
-    for name, loader in zip(task_names, test_loaders):
-        acc = evaluate(model, loader)
-        results[name] = round(acc * 100, 2)
-        print(f"    {name}: {acc*100:.2f}%")
+
+    for j in range(current_task_idx + 1):
+        acc = evaluate(model, test_loaders[j])
+
+        results[task_names[j]] = round(acc * 100, 2)
+
+        print(f"    {task_names[j]}: {acc * 100:.2f}%")
+
     return results
 
 
