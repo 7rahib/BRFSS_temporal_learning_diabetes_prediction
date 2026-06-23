@@ -67,7 +67,7 @@ BATCH_SIZE         = 64
 MAX_FISHER_SAMPLES = 5000
 
 # Replay buffer settings
-REPLAY_SAMPLES_PER_TASK = 2000   # samples stored per past task (up from 500)
+REPLAY_SAMPLES_PER_TASK = 20000   # samples stored per past task (up from 500)
 REPLAY_RATIO            = 0.25   # 25% of each batch is replay data
 
 # Transformer settings
