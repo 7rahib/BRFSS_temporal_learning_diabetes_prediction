@@ -23,9 +23,13 @@ DATA:
     data/brfss_2023.csv
 
 MODEL:
-    TabularTransformer — self-attention across features.
-    Learns which feature combinations predict diabetes,
+    FT-Transformer (Feature Tokenizer + Transformer) — self-attention
+    across features. Learns which feature combinations predict diabetes,
     not just individual feature weights.
+
+CLASS IMBALANCE:
+    The CSVs in data/ already come pre-balanced with SMOTE, so no
+    oversampling is applied in this pipeline.
 
 HOW TO RUN:
     pip install -r requirements.txt
@@ -60,7 +64,7 @@ from src.evaluate import (
 # ─────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────
-EPOCHS             = 50
+EPOCHS             = 10
 LR                 = 0.001
 LAMBDA_EWC         = 10   # Higher lambda needed with fixed LR in EWC training
 BATCH_SIZE         = 64
@@ -70,11 +74,14 @@ MAX_FISHER_SAMPLES = 5000
 REPLAY_SAMPLES_PER_TASK = 20000   # samples stored per past task (up from 500)
 REPLAY_RATIO            = 0.25   # 25% of each batch is replay data
 
-# Transformer settings
-EMBED_DIM  = 64
-N_HEADS    = 4
-N_LAYERS   = 2
-DROPOUT    = 0.1
+# FT-Transformer settings
+EMBED_DIM       = 64      # size of each feature's token vector
+N_HEADS         = 4       # attention heads — must evenly divide EMBED_DIM
+N_LAYERS        = 2       # number of stacked Transformer encoder layers
+DROPOUT         = 0.1     # dropout in attention, feed-forward, and head
+FFN_DIM         = None    # feed-forward hidden size; None = 4 x EMBED_DIM
+ACTIVATION      = "gelu"  # feed-forward activation: "gelu" or "relu"
+HEAD_HIDDEN_DIM = None    # classification head hidden size; None = EMBED_DIM // 2
 
 
 def section(title):
@@ -88,7 +95,7 @@ def section(title):
 # ─────────────────────────────────────────
 section("LOADING TEMPORAL DATA (2015 → 2019 → 2023)")
 
-tasks, scaler, TASK_NAMES, feature_cols = load_temporal_tasks(apply_smote=True)
+tasks, scaler, TASK_NAMES, feature_cols = load_temporal_tasks()
 
 train_loaders = [to_dataloader(t['X_train'], t['y_train'], BATCH_SIZE)                for t in tasks]
 test_loaders  = [to_dataloader(t['X_test'],  t['y_test'],  BATCH_SIZE, shuffle=False) for t in tasks]
@@ -96,7 +103,7 @@ input_size    = tasks[0]['X_train'].shape[1]
 
 print(f"\n  Input features : {input_size}")
 print(f"  Tasks          : {TASK_NAMES}")
-print(f"\n  Model          : TabularTransformer")
+print(f"\n  Model          : FT-Transformer")
 print(f"  Embed dim      : {EMBED_DIM} | Heads: {N_HEADS} | Layers: {N_LAYERS}")
 print(f"  Lambda EWC     : {LAMBDA_EWC} | Replay samples: {REPLAY_SAMPLES_PER_TASK}")
 
@@ -111,7 +118,8 @@ print(f"  Lambda EWC     : {LAMBDA_EWC} | Replay samples: {REPLAY_SAMPLES_PER_TA
 # ═══════════════════════════════════════════════════════════
 section("PHASE A: SEQUENTIAL — WITHOUT EWC (forgetting baseline)")
 
-noewc_model     = init_model(input_size)
+noewc_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT,
+                                    FFN_DIM, ACTIVATION, HEAD_HIDDEN_DIM)
 noewc_log       = []
 noewc_histories = []
 
@@ -146,7 +154,8 @@ noewc_metrics = [full_metrics(noewc_model, loader, name)
 # ═══════════════════════════════════════════════════════════
 section("PHASE B: SEQUENTIAL — WITH EWC (Transformer + fixed LR)")
 
-ewc_model     = init_model(input_size)
+ewc_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT,
+                                    FFN_DIM, ACTIVATION, HEAD_HIDDEN_DIM)
 ewc_log       = []
 ewc_histories = []
 ewc_objects   = []
@@ -190,7 +199,8 @@ ewc_metrics = [full_metrics(ewc_model, loader, name)
 # ═══════════════════════════════════════════════════════════
 section("PHASE C: SEQUENTIAL — WITH EWC + REPLAY BUFFER")
 
-replay_model     = init_model(input_size)
+replay_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT,
+                                    FFN_DIM, ACTIVATION, HEAD_HIDDEN_DIM)
 replay_log       = []
 replay_histories = []
 replay_ewc_objects = []
@@ -314,7 +324,7 @@ plot_ewc_penalty_ratio(ewc_histories, replay_histories, TASK_NAMES)
 # ─────────────────────────────────────────
 section("FINAL SUMMARY")
 
-print(f"\n  Model          : TabularTransformer")
+print(f"\n  Model          : FT-Transformer")
 print(f"  Temporal tasks : 2015 → 2019 → 2023")
 print(f"  Lambda         : {LAMBDA_EWC} | Fisher: normalised | Epochs: {EPOCHS}")
 print(f"  Replay samples : {REPLAY_SAMPLES_PER_TASK} per task | Ratio: {REPLAY_RATIO}")

@@ -12,26 +12,23 @@ SHARED FEATURES:
     Columns present in all three datasets are identified automatically.
     Only shared columns are used so input size is consistent across tasks.
 
+CLASS IMBALANCE:
+    The datasets provided in data/ already come pre-balanced with SMOTE,
+    so no oversampling is done here — this file only loads, cleans,
+    scales, and splits the data.
+
 DATA PLACEMENT:
-    data/brfss_2015.csv
-    data/brfss_2019.csv
-    data/brfss_2023.csv
+    data/modified_diabetes_indicator_dataset_2015.csv
+    data/modified_diabetes_indicator_dataset_2019.csv
+    data/modified_diabetes_indicator_dataset_2023.csv
 """
 
 import os
 import pandas as pd
-import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-
-try:
-    from imblearn.over_sampling import SMOTE
-    SMOTE_AVAILABLE = True
-except ImportError:
-    SMOTE_AVAILABLE = False
-    print("WARNING: imbalanced-learn not installed. Run: pip install imbalanced-learn")
 
 TARGET_COL         = 'Diabetes_binary'
 TARGET_CANDIDATES  = ['Diabetes_binary', 'Diabetes', 'diabetes', 'DIABETE3', 'diabete3']
@@ -70,7 +67,7 @@ def _shared_features(dataframes):
     return shared
 
 
-def _make_task(df, feature_cols, scaler, apply_smote, task_num):
+def _make_task(df, feature_cols, scaler, task_num):
     X        = df[feature_cols].values
     y        = df[TARGET_COL].values
     X_scaled = scaler.transform(X)
@@ -79,15 +76,12 @@ def _make_task(df, feature_cols, scaler, apply_smote, task_num):
         X_scaled, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    if apply_smote and SMOTE_AVAILABLE:
-        X_train, y_train = SMOTE(random_state=42).fit_resample(X_train, y_train)
-
     pct = y_test.mean() * 100
     print(f"    Task {task_num}: {len(X_train):,} train | {len(X_test):,} test | {pct:.1f}% diabetic")
     return {'X_train': X_train, 'X_test': X_test, 'y_train': y_train, 'y_test': y_test}
 
 
-def load_temporal_tasks(apply_smote=True):
+def load_temporal_tasks():
     """
     Load BRFSS 2015, 2019, 2023 as three sequential tasks.
 
@@ -111,7 +105,7 @@ def load_temporal_tasks(apply_smote=True):
     print("\n  Building tasks:")
     for i, (year, df) in enumerate(dataframes.items()):
         task_names.append(f"Task {i+1} — BRFSS {year}")
-        tasks.append(_make_task(df, feature_cols, scaler, apply_smote, i + 1))
+        tasks.append(_make_task(df, feature_cols, scaler, i + 1))
 
     return tasks, scaler, task_names, feature_cols
 
