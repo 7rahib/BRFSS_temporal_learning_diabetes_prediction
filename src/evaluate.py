@@ -16,7 +16,7 @@ METRICS:
     FWT        — forward transfer: did earlier tasks help later ones
                  (computed using Phase A No-EWC as the baseline)
 
-GRAPHS (14 total):
+GRAPHS (16 total):
     01 — Final accuracy: No-EWC vs EWC vs EWC+Replay
     02 — EWC accuracy over training stages
     03 — EWC+Replay accuracy over training stages
@@ -24,13 +24,24 @@ GRAPHS (14 total):
     05 — Backward transfer per year (all three methods)
     06 — Forward transfer per year (all three methods)
     07 — Transfer summary (overall BWT + FWT)
-    08 — Confusion matrices: No-EWC vs EWC vs EWC+Replay
+    08 — Confusion matrices @ threshold 0.5 (UNCALIBRATED — for reference only)
+    08b — Confusion matrices @ calibrated threshold (PRIMARY RESULT)
     09 — ROC curves: all three methods
-    10 — Precision / Recall / F1: all three methods
+    10 — Precision / Recall / F1 @ threshold 0.5 (UNCALIBRATED — for reference only)
+    10b — Precision / Recall / F1 @ calibrated threshold (PRIMARY RESULT)
     11 — Forgetting heatmap: EWC
     12 — Forgetting heatmap: EWC+Replay
     13 — Training loss curves (task loss vs EWC penalty)
     14 — EWC penalty ratio (diagnoses lambda issues)
+
+NOTE ON THRESHOLD 0.5 vs CALIBRATED:
+    Given this dataset's class imbalance (~15-17% diabetic prevalence),
+    the default 0.5 probability threshold is a poor operating point —
+    it strongly favours the majority class and produces very low recall.
+    Graphs 08b/10b use each task's F1-maximising threshold (found in
+    Phase D / calibrate_all_tasks) and should be treated as the real
+    result. Graphs 08/10 are kept only so you can see the difference —
+    do not report those numbers as the model's real performance.
 """
 
 import os
@@ -58,15 +69,20 @@ COLORS = {
 # ──────────────────────────────────────────
 
 def get_predictions(model, dataloader):
-    """Run model. Returns (labels, predictions, probabilities)."""
+    """Run model. Returns (labels, predictions, probabilities).
+
+    The model outputs a raw logit (see model.py), so sigmoid is applied
+    here to turn it into a 0-1 probability before thresholding at 0.5.
+    """
     model.eval()
     labels_all, preds_all, probs_all = [], [], []
     with torch.no_grad():
         for X, y in dataloader:
-            out = model(X).reshape(-1)
+            logits = model(X).reshape(-1)
+            probs  = torch.sigmoid(logits)
             labels_all.extend(y.cpu().numpy())
-            preds_all.extend((out >= 0.5).float().cpu().numpy())
-            probs_all.extend(out.cpu().numpy())
+            preds_all.extend((probs >= 0.5).float().cpu().numpy())
+            probs_all.extend(probs.cpu().numpy())
     return np.array(labels_all), np.array(preds_all), np.array(probs_all)
 
 
@@ -181,11 +197,20 @@ def find_best_threshold(model, dataloader):
     return round(float(best_thresh), 2), round(best_f1 * 100, 2)
 
 
-def calibrate_all_tasks(model, test_loaders, task_names):
-    """Find best threshold per task. Returns {name: threshold}."""
+def calibrate_all_tasks(model, loaders, task_names):
+    """
+    Find best F1-maximising threshold per task.
+
+    IMPORTANT: pass a VALIDATION split here, not the test split — picking
+    a threshold on the same data you report final metrics on is a mild
+    form of leakage. main.py calibrates on val_loaders and only applies
+    the resulting threshold to test_loaders for reporting.
+
+    Returns {name: threshold}.
+    """
     print("\n  Per-task threshold calibration:")
     thresholds = {}
-    for name, loader in zip(task_names, test_loaders):
+    for name, loader in zip(task_names, loaders):
         t, f1 = find_best_threshold(model, loader)
         thresholds[name] = t
         print(f"    {name}: threshold={t:.2f}  (best F1={f1:.1f}%)")
@@ -419,7 +444,11 @@ def plot_transfer_summary(bwt_noewc, bwt_ewc, bwt_replay,
 
 def plot_confusion_matrices(models_dict, test_loaders, task_names, output_dir='results'):
     """
-    Three rows (No-EWC / EWC / EWC+Replay) × N columns (tasks).
+    UNCALIBRATED — uses the default 0.5 probability threshold.
+    Kept for reference/comparison only. See plot_confusion_matrices_calibrated()
+    for the threshold-tuned version, which is the primary result to report.
+
+    Three rows (No-EWC / EWC / EWC+Replay) x N columns (tasks).
     models_dict = {'No EWC': model, 'EWC': model, 'EWC + Replay': model}
     """
     n_models = len(models_dict)
@@ -438,8 +467,44 @@ def plot_confusion_matrices(models_dict, test_loaders, task_names, output_dir='r
             ax.set_xlabel('Predicted')
             ax.set_ylabel('Actual')
 
-    plt.suptitle('Confusion Matrices — No EWC / EWC / EWC+Replay', fontsize=14, fontweight='bold')
-    _save('08_confusion_matrices.png', output_dir)
+    plt.suptitle('Confusion Matrices — No EWC / EWC / EWC+Replay\n'
+                 '(@ threshold 0.5, UNCALIBRATED — see 08b for the real result)',
+                 fontsize=13, fontweight='bold')
+    _save('08_confusion_matrices_uncalibrated.png', output_dir)
+
+
+def plot_confusion_matrices_calibrated(models_dict, test_loaders, task_names,
+                                       thresholds_dict, output_dir='results'):
+    """
+    PRIMARY RESULT — confusion matrices using each model's own per-task
+    calibrated threshold (from calibrate_all_tasks / Phase D), instead of
+    the default 0.5 cutoff. Report these numbers, not graph 08's.
+
+    thresholds_dict = {'No EWC': {task_name: threshold, ...},
+                        'EWC': {...}, 'EWC + Replay': {...}}
+    """
+    n_models = len(models_dict)
+    n_tasks  = len(task_names)
+    fig, axes = plt.subplots(n_models, n_tasks, figsize=(5 * n_tasks, 5 * n_models))
+
+    for row, (label, model) in enumerate(models_dict.items()):
+        thresholds = thresholds_dict[label]
+        for col, (loader, name) in enumerate(zip(test_loaders, task_names)):
+            ax    = axes[row][col]
+            labels, _, probs = get_predictions(model, loader)
+            t     = thresholds[name]
+            preds = (probs >= t).astype(float)
+            cm    = confusion_matrix(labels, preds)
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', ax=ax,
+                        xticklabels=['No Diab.', 'Diab.'],
+                        yticklabels=['No Diab.', 'Diab.'])
+            ax.set_title(f'{label}\n{_short(name)} (t={t:.2f})', fontsize=10, fontweight='bold')
+            ax.set_xlabel('Predicted')
+            ax.set_ylabel('Actual')
+
+    plt.suptitle('Confusion Matrices — Calibrated Thresholds (PRIMARY RESULT)',
+                 fontsize=14, fontweight='bold')
+    _save('08b_confusion_matrices_calibrated.png', output_dir)
 
 
 # ──────────────────────────────────────────
@@ -477,7 +542,11 @@ def plot_roc_curves(models_dict, test_loaders, task_names, output_dir='results')
 # ──────────────────────────────────────────
 
 def plot_metrics_comparison(noewc_metrics, ewc_metrics, replay_metrics, output_dir='results'):
-    """Three grouped bar charts: Precision / Recall / F1 for all methods."""
+    """
+    UNCALIBRATED — uses each model's default 0.5 threshold metrics.
+    Kept for reference/comparison only. See plot_metrics_comparison_calibrated()
+    for the threshold-tuned version, which is the primary result to report.
+    """
     fig, axes = plt.subplots(1, 3, figsize=(16, 6))
     for ax, metric in zip(axes, ['Precision', 'Recall', 'F1']):
         labels  = [_short(m['Task']) for m in ewc_metrics]
@@ -497,8 +566,41 @@ def plot_metrics_comparison(noewc_metrics, ewc_metrics, replay_metrics, output_d
         ax.set_ylabel('Score (%)')
         ax.legend(fontsize=9)
         ax.grid(True, alpha=0.3, axis='y')
-    plt.suptitle('Precision / Recall / F1 — All Three Methods', fontsize=14, fontweight='bold')
-    _save('10_precision_recall_f1.png', output_dir)
+    plt.suptitle('Precision / Recall / F1 — All Three Methods\n'
+                 '(@ threshold 0.5, UNCALIBRATED — see 10b for the real result)',
+                 fontsize=13, fontweight='bold')
+    _save('10_precision_recall_f1_uncalibrated.png', output_dir)
+
+
+def plot_metrics_comparison_calibrated(noewc_metrics_cal, ewc_metrics_cal,
+                                       replay_metrics_cal, output_dir='results'):
+    """
+    PRIMARY RESULT — same chart as plot_metrics_comparison(), but using
+    each task's calibrated-threshold metrics (from full_metrics_calibrated
+    / Phase D) instead of the default 0.5 cutoff. Report these numbers.
+    """
+    fig, axes = plt.subplots(1, 3, figsize=(16, 6))
+    for ax, metric in zip(axes, ['Precision', 'Recall', 'F1']):
+        labels  = [_short(m['Task']) for m in ewc_metrics_cal]
+        x       = np.arange(len(labels))
+        w       = 0.25
+        for offset, metrics_list, label, col in [
+            (-w, noewc_metrics_cal,  'No EWC',      COLORS['noewc']),
+            ( 0, ewc_metrics_cal,    'EWC',         COLORS['ewc']),
+            ( w, replay_metrics_cal, 'EWC + Replay',COLORS['replay']),
+        ]:
+            ax.bar(x + offset, [m[metric] for m in metrics_list], w,
+                   label=label, color=col, alpha=0.85)
+        ax.set_title(metric, fontsize=13, fontweight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, fontsize=10)
+        ax.set_ylim(0, 115)
+        ax.set_ylabel('Score (%)')
+        ax.legend(fontsize=9)
+        ax.grid(True, alpha=0.3, axis='y')
+    plt.suptitle('Precision / Recall / F1 — Calibrated Thresholds (PRIMARY RESULT)',
+                 fontsize=14, fontweight='bold')
+    _save('10b_precision_recall_f1_calibrated.png', output_dir)
 
 
 # ──────────────────────────────────────────

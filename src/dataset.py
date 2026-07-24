@@ -13,9 +13,11 @@ SHARED FEATURES:
     Only shared columns are used so input size is consistent across tasks.
 
 CLASS IMBALANCE:
-    The datasets provided in data/ already come pre-balanced with SMOTE,
-    so no oversampling is done here — this file only loads, cleans,
-    scales, and splits the data.
+    These CSVs are NOT pre-balanced — diabetes prevalence is only
+    ~15-17% in every year. This file does not do any resampling
+    itself (no SMOTE, no sampler) — imbalance is instead handled at
+    training time via BCEWithLogitsLoss(pos_weight=...) in train.py,
+    using compute_pos_weight() below.
 
 DATA PLACEMENT:
     data/modified_diabetes_indicator_dataset_2015.csv
@@ -24,6 +26,7 @@ DATA PLACEMENT:
 """
 
 import os
+import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, TensorDataset
@@ -67,23 +70,43 @@ def _shared_features(dataframes):
     return shared
 
 
-def _make_task(df, feature_cols, scaler, task_num):
+def _make_task(df, feature_cols, scaler, task_num, val_size=0.15):
     X        = df[feature_cols].values
     y        = df[TARGET_COL].values
     X_scaled = scaler.transform(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(
+    # Held-out test set — untouched until final reporting
+    X_train_full, X_test, y_train_full, y_test = train_test_split(
         X_scaled, y, test_size=0.2, random_state=42, stratify=y
     )
 
+    # Carve a validation split OUT OF THE TRAINING DATA (not the test set).
+    # This is used in Phase D to pick each task's classification threshold.
+    # Calibrating on the test set and then reporting metrics on that same
+    # test set is a mild form of leakage — picking the threshold on val
+    # and only ever touching test for the final numbers avoids that.
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_full, y_train_full, test_size=val_size,
+        random_state=42, stratify=y_train_full
+    )
+
     pct = y_test.mean() * 100
-    print(f"    Task {task_num}: {len(X_train):,} train | {len(X_test):,} test | {pct:.1f}% diabetic")
-    return {'X_train': X_train, 'X_test': X_test, 'y_train': y_train, 'y_test': y_test}
+    print(f"    Task {task_num}: {len(X_train):,} train | {len(X_val):,} val | "
+          f"{len(X_test):,} test | {pct:.1f}% diabetic")
+    return {
+        'X_train': X_train, 'y_train': y_train,
+        'X_val':   X_val,   'y_val':   y_val,
+        'X_test':  X_test,  'y_test':  y_test,
+    }
 
 
-def load_temporal_tasks():
+def load_temporal_tasks(val_size=0.15):
     """
     Load BRFSS 2015, 2019, 2023 as three sequential tasks.
+
+    Each task gets a train / val / test split. `val_size` is the fraction
+    of the *training* data (not the total) carved out for validation —
+    used for threshold calibration in Phase D, kept separate from test.
 
     Returns: tasks, scaler, task_names, feature_cols
     """
@@ -105,7 +128,7 @@ def load_temporal_tasks():
     print("\n  Building tasks:")
     for i, (year, df) in enumerate(dataframes.items()):
         task_names.append(f"Task {i+1} — BRFSS {year}")
-        tasks.append(_make_task(df, feature_cols, scaler, i + 1))
+        tasks.append(_make_task(df, feature_cols, scaler, i + 1, val_size))
 
     return tasks, scaler, task_names, feature_cols
 
@@ -120,3 +143,40 @@ def to_dataloader(X, y, batch_size=64, shuffle=True):
         batch_size=batch_size,
         shuffle=shuffle,
     )
+
+
+def compute_pos_weight(y_train, mode='full'):
+    """
+    Compute the pos_weight for nn.BCEWithLogitsLoss from one task's
+    training labels.
+
+    mode='full' (default): (# negative) / (# positive) — the standard,
+        most aggressive choice. This is what pushed recall from ~10% to
+        ~82% at the default threshold in earlier runs.
+    mode='sqrt': sqrt of the above — a softer push. Trades some of that
+        recall gain back for more precision, if 'full' feels too
+        aggressive for your use case. Try both and compare calibrated
+        F1/precision/recall — neither is objectively "correct".
+
+    WHY THIS IS NEEDED AT ALL:
+        These BRFSS CSVs are NOT pre-balanced — diabetes prevalence is
+        only ~15-17%. Without correcting for this, the model learns
+        that predicting "no diabetes" every time already gets ~83-84%
+        accuracy, so it has little incentive to learn the minority
+        (diabetic) class — this shows up as very low recall at the
+        default 0.5 threshold.
+
+    Returns: a scalar torch.Tensor, ready to pass as
+             nn.BCEWithLogitsLoss(pos_weight=...).
+    """
+    y_train = np.asarray(y_train)
+    n_pos   = float((y_train == 1).sum())
+    n_neg   = float((y_train == 0).sum())
+    ratio   = n_neg / max(n_pos, 1.0)
+
+    if mode == 'sqrt':
+        ratio = ratio ** 0.5
+    elif mode != 'full':
+        raise ValueError(f"Unknown pos_weight mode: {mode!r}. Use 'full' or 'sqrt'.")
+
+    return torch.tensor(ratio, dtype=torch.float32)

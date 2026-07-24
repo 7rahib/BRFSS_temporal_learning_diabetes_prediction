@@ -27,8 +27,10 @@ ARCHITECTURE:
     3. Transformer encoder — standard multi-head self-attention layers
        let every feature-token attend to every other feature-token.
     4. Classification head — the [CLS] token's final representation is
-       passed through a small MLP head that outputs a diabetes
-       probability (0 to 1).
+       passed through a small MLP head that outputs a single raw logit.
+       (Training applies BCEWithLogitsLoss directly to this logit;
+       evaluation applies torch.sigmoid() to turn it into a 0-1
+       probability of diabetes.)
 
 NOTE ON FEATURES:
     All BRFSS columns used here are already numeric (binary, ordinal,
@@ -89,13 +91,18 @@ class FTTransformer(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
 
         # --- Classification head ---
+        # NOTE: outputs a raw logit, not a probability. BCEWithLogitsLoss
+        # (used in train.py) applies the sigmoid internally in a more
+        # numerically stable way, and supports the pos_weight argument
+        # used to counteract class imbalance. Anywhere this model's
+        # output is turned into a 0-1 probability (evaluation, threshold
+        # calibration, etc.), apply torch.sigmoid(output) first.
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Sequential(
             nn.Linear(embed_dim, head_hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(head_hidden_dim, 1),
-            nn.Sigmoid(),
         )
 
     def forward(self, x):

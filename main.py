@@ -28,15 +28,32 @@ MODEL:
     not just individual feature weights.
 
 CLASS IMBALANCE:
-    The CSVs in data/ already come pre-balanced with SMOTE, so no
-    oversampling is applied in this pipeline.
+    These CSVs are NOT pre-balanced (~15-17% diabetic prevalence in every
+    year). Imbalance is handled at training time via
+    BCEWithLogitsLoss(pos_weight=...), computed per-task from the training
+    labels (see dataset.compute_pos_weight, POS_WEIGHT_MODE below). No
+    resampling (SMOTE, WeightedRandomSampler, etc.) is done here — that's
+    handled separately at the dataset level if/when needed.
+
+    Because a 0.5 probability threshold is still a poor operating point
+    under this much imbalance, Phase D calibrates a per-task threshold —
+    on a held-out VALIDATION split, not the test set (see VAL_SIZE below) —
+    and graphs 08b/10b (not 08/10) are the primary, reportable results.
+
+OPTIMIZER:
+    AdamW, not Adam — true decoupled weight decay, the standard choice
+    for transformer-style models (see train.py).
 
 HOW TO RUN:
     pip install -r requirements.txt
     python main.py
 """
 
-from src.dataset  import load_temporal_tasks, to_dataloader
+import random
+import numpy as np
+import torch
+
+from src.dataset  import load_temporal_tasks, to_dataloader, compute_pos_weight
 from src.model    import init_model
 from src.ewc      import EWC
 from src.replay   import ReplayBuffer
@@ -54,21 +71,67 @@ from src.evaluate import (
     plot_forward_transfer,
     plot_transfer_summary,
     plot_confusion_matrices,
+    plot_confusion_matrices_calibrated,
     plot_roc_curves,
     plot_metrics_comparison,
+    plot_metrics_comparison_calibrated,
     plot_forgetting_heatmap,
     plot_training_loss_curves,
     plot_ewc_penalty_ratio,
 )
 
 # ─────────────────────────────────────────
+# REPRODUCIBILITY
+# ─────────────────────────────────────────
+# Nothing was seeded before — every run had a different model weight
+# initialisation, a different DataLoader shuffle order, and a different
+# replay-buffer sample selection, on top of whatever config changed.
+# That makes runs impossible to compare: e.g. a BWT swing between two
+# runs could be a real effect of a config change, or just different
+# random draws. Fixing the seed removes that source of noise so config
+# changes can actually be attributed to their effect.
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+# ─────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────
-EPOCHS             = 10
-LR                 = 0.001
-LAMBDA_EWC         = 10   # Higher lambda needed with fixed LR in EWC training
-BATCH_SIZE         = 64
+EPOCHS             = 5
+LR                 = 0.0015  # bumped alongside BATCH_SIZE (64->256, ~4x);
+                            # Adam-family optimizers don't need full linear
+                            # scaling like SGD, so ~1.5x rather than ~4x
+LAMBDA_EWC         = 1000    # RESET from 500 — ewc.py's Fisher normalisation
+                          # changed from dividing by the global MAX to the
+                          # global MEAN (see ewc.py). That makes typical
+                          # Fisher values ~1000s of times larger than
+                          # before, so the old LAMBDA_EWC=500 (calibrated
+                          # for the old scale) would now massively
+                          # overshoot. 1 is a conservative starting point,
+                          # not a tuned value — check
+                          # 14_ewc_penalty_ratio.png after a run (target
+                          # 0.5-3.0) and adjust from here.
+BATCH_SIZE         = 256  # was 64 — larger batches tend to train
+                          # transformers more stably; LR bumped above to match
 MAX_FISHER_SAMPLES = 5000
+
+# Class-imbalance handling (see dataset.compute_pos_weight)
+POS_WEIGHT_MODE = 'full'  # 'full' = neg/pos ratio (aggressive, default).
+                          # 'sqrt' = sqrt(neg/pos) (softer — trades some of
+                          # the recall gain back for more precision).
+
+# Validation split, carved out of TRAINING data (not test), used to pick
+# each task's classification threshold in Phase D. Calibrating on the
+# test set and then reporting metrics on that same test set would be a
+# mild form of leakage — this keeps calibration and reporting separate.
+VAL_SIZE = 0.15
+
+# LR scheduler — warmup then cosine decay down to a floor (not to zero)
+WARMUP_EPOCHS = None   # None = auto (10% of EPOCHS, min 1)
+MIN_LR_RATIO  = 0.3    # cosine decay floor as a fraction of peak LR;
+                       # kept well above 0 so EWC's penalty (which needs
+                       # ongoing weight movement) stays meaningful
 
 # Replay buffer settings
 REPLAY_SAMPLES_PER_TASK = 20000   # samples stored per past task (up from 500)
@@ -95,14 +158,21 @@ def section(title):
 # ─────────────────────────────────────────
 section("LOADING TEMPORAL DATA (2015 → 2019 → 2023)")
 
-tasks, scaler, TASK_NAMES, feature_cols = load_temporal_tasks()
+tasks, scaler, TASK_NAMES, feature_cols = load_temporal_tasks(val_size=VAL_SIZE)
 
 train_loaders = [to_dataloader(t['X_train'], t['y_train'], BATCH_SIZE)                for t in tasks]
+val_loaders   = [to_dataloader(t['X_val'],   t['y_val'],   BATCH_SIZE, shuffle=False) for t in tasks]
 test_loaders  = [to_dataloader(t['X_test'],  t['y_test'],  BATCH_SIZE, shuffle=False) for t in tasks]
 input_size    = tasks[0]['X_train'].shape[1]
 
+# Per-task pos_weight for BCEWithLogitsLoss — corrects for the ~83-84%
+# "always predict no diabetes" majority-class baseline (see dataset.py)
+pos_weights = [compute_pos_weight(t['y_train'], mode=POS_WEIGHT_MODE) for t in tasks]
+
 print(f"\n  Input features : {input_size}")
 print(f"  Tasks          : {TASK_NAMES}")
+print(f"  Pos weights    : ({POS_WEIGHT_MODE}) " +
+      ", ".join(f"{n}={w.item():.2f}" for n, w in zip(TASK_NAMES, pos_weights)))
 print(f"\n  Model          : FT-Transformer")
 print(f"  Embed dim      : {EMBED_DIM} | Heads: {N_HEADS} | Layers: {N_LAYERS}")
 print(f"  Lambda EWC     : {LAMBDA_EWC} | Replay samples: {REPLAY_SAMPLES_PER_TASK}")
@@ -125,7 +195,9 @@ noewc_histories = []
 
 for i, name in enumerate(TASK_NAMES):
     print(f"\n  [No-EWC] Training on {name}...")
-    noewc_model, h = train_normal(noewc_model, train_loaders[i], EPOCHS, LR)
+    noewc_model, h = train_normal(noewc_model, train_loaders[i], EPOCHS, LR,
+                                   pos_weight=pos_weights[i],
+                                   warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
     noewc_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
     noewc_log.append(evaluate_seen_tasks(noewc_model, test_loaders, TASK_NAMES, i))
@@ -163,11 +235,15 @@ ewc_objects   = []
 for i, name in enumerate(TASK_NAMES):
     if i == 0:
         print(f"\n  [EWC] Training on {name} (first year — no EWC yet)...")
-        ewc_model, h = train_normal(ewc_model, train_loaders[i], EPOCHS, LR)
+        ewc_model, h = train_normal(ewc_model, train_loaders[i], EPOCHS, LR,
+                                     pos_weight=pos_weights[i],
+                                     warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
     else:
         print(f"\n  [EWC] Training on {name} (EWC protecting {i} previous year(s))...")
         ewc_model, h = train_ewc(ewc_model, train_loaders[i],
-                                  ewc_objects, LAMBDA_EWC, EPOCHS, LR)
+                                  ewc_objects, LAMBDA_EWC, EPOCHS, LR,
+                                  pos_weight=pos_weights[i],
+                                  warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
 
     ewc_histories.append(h)
     print(f"\n  Evaluating all years after {name}:")
@@ -212,7 +288,9 @@ replay_buffer    = ReplayBuffer(
 for i, name in enumerate(TASK_NAMES):
     if i == 0:
         print(f"\n  [EWC+Replay] Training on {name} (first year — no EWC yet)...")
-        replay_model, h = train_normal(replay_model, train_loaders[i], EPOCHS, LR)
+        replay_model, h = train_normal(replay_model, train_loaders[i], EPOCHS, LR,
+                                        pos_weight=pos_weights[i],
+                                        warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
     else:
         print(f"\n  [EWC+Replay] Training on {name} "
               f"(EWC + {replay_buffer.total_stored:,} replay samples)...")
@@ -220,6 +298,8 @@ for i, name in enumerate(TASK_NAMES):
             replay_model, train_loaders[i],
             replay_ewc_objects, replay_buffer,
             LAMBDA_EWC, EPOCHS, LR,
+            pos_weight=pos_weights[i],
+            warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO,
         )
 
     replay_histories.append(h)
@@ -248,15 +328,17 @@ replay_metrics = [full_metrics(replay_model, loader, name)
 # PHASE D — THRESHOLD CALIBRATION
 # ═══════════════════════════════════════════════════════════
 section("PHASE D: PER-YEAR THRESHOLD CALIBRATION")
+print("\n  Thresholds are picked on the VALIDATION split, then applied to the")
+print("  (unseen) test split below — avoids tuning and reporting on the same data.")
 
 print("\n  Calibrating — No-EWC model...")
-noewc_thresholds = calibrate_all_tasks(noewc_model, test_loaders, TASK_NAMES)
+noewc_thresholds = calibrate_all_tasks(noewc_model, val_loaders, TASK_NAMES)
 
 print("\n  Calibrating — EWC model...")
-ewc_thresholds = calibrate_all_tasks(ewc_model, test_loaders, TASK_NAMES)
+ewc_thresholds = calibrate_all_tasks(ewc_model, val_loaders, TASK_NAMES)
 
 print("\n  Calibrating — EWC+Replay model...")
-replay_thresholds = calibrate_all_tasks(replay_model, test_loaders, TASK_NAMES)
+replay_thresholds = calibrate_all_tasks(replay_model, val_loaders, TASK_NAMES)
 
 print("\n  Calibrated metrics — No-EWC:")
 noewc_metrics_cal = [
@@ -280,7 +362,7 @@ replay_metrics_cal = [
 # ═══════════════════════════════════════════════════════════
 # PHASE E — SAVE RESULTS AND GENERATE 14 GRAPHS
 # ═══════════════════════════════════════════════════════════
-section("PHASE E: SAVING RESULTS AND GENERATING 14 GRAPHS")
+section("PHASE E: SAVING RESULTS AND GENERATING 16 GRAPHS")
 
 save_results(noewc_log,   TASK_NAMES, 'results_noewc.csv')
 save_results(ewc_log,     TASK_NAMES, 'results_ewc.csv')
@@ -299,6 +381,14 @@ models_dict = {
     'EWC + Replay': replay_model,
 }
 
+# Per-model, per-task calibrated thresholds (from Phase D) — used to
+# produce the primary-result (08b/10b) charts below.
+thresholds_dict = {
+    'No EWC':      noewc_thresholds,
+    'EWC':         ewc_thresholds,
+    'EWC + Replay': replay_thresholds,
+}
+
 print("\n  Generating graphs...")
 plot_final_accuracy(noewc_final, ewc_final, replay_final, TASK_NAMES)
 plot_ewc_accuracy_over_stages(ewc_log, TASK_NAMES)
@@ -308,9 +398,11 @@ plot_backward_transfer(per_bwt_noewc, per_bwt_ewc, per_bwt_replay)
 plot_forward_transfer(per_fwt_noewc, per_fwt_ewc, per_fwt_replay)
 plot_transfer_summary(bwt_noewc, bwt_ewc, bwt_replay,
                       fwt_noewc, fwt_ewc, fwt_replay)
-plot_confusion_matrices(models_dict, test_loaders, TASK_NAMES)
+plot_confusion_matrices(models_dict, test_loaders, TASK_NAMES)                                  # uncalibrated (reference)
+plot_confusion_matrices_calibrated(models_dict, test_loaders, TASK_NAMES, thresholds_dict)       # PRIMARY RESULT
 plot_roc_curves(models_dict, test_loaders, TASK_NAMES)
-plot_metrics_comparison(noewc_metrics, ewc_metrics, replay_metrics)
+plot_metrics_comparison(noewc_metrics, ewc_metrics, replay_metrics)                              # uncalibrated (reference)
+plot_metrics_comparison_calibrated(noewc_metrics_cal, ewc_metrics_cal, replay_metrics_cal)        # PRIMARY RESULT
 plot_forgetting_heatmap(ewc_log,    TASK_NAMES, 'Forgetting Heatmap — EWC',
                         '11_heatmap_ewc.png')
 plot_forgetting_heatmap(replay_log, TASK_NAMES, 'Forgetting Heatmap — EWC+Replay',
@@ -361,6 +453,7 @@ print(f"    Target: 0.5–3.0  (EWC balanced with task loss)")
 print(f"    < 0.1  → increase LAMBDA_EWC")
 print(f"    > 5.0  → reduce  LAMBDA_EWC")
 
-print(f"\n  All 14 graphs and 6 CSV files saved to results/")
+print(f"\n  Primary results are graphs 08b/10b (calibrated) — NOT 08/10 (threshold 0.5).")
+print(f"  All 16 graphs and 6 CSV files saved to results/")
 print("DONE.")
 print("=" * 65)
