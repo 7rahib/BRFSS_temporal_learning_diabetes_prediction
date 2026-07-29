@@ -29,11 +29,11 @@ MODEL:
 
 CLASS IMBALANCE:
     These CSVs are NOT pre-balanced (~15-17% diabetic prevalence in every
-    year). Imbalance is handled at training time via
-    BCEWithLogitsLoss(pos_weight=...), computed per-task from the training
-    labels (see dataset.compute_pos_weight, POS_WEIGHT_MODE below). No
-    resampling (SMOTE, WeightedRandomSampler, etc.) is done here — that's
-    handled separately at the dataset level if/when needed.
+    year). Imbalance is handled at training time via a weighted BCELoss,
+    using a per-task pos_weight computed from the training labels (see
+    dataset.compute_pos_weight, POS_WEIGHT_MODE below). No resampling
+    (SMOTE, WeightedRandomSampler, etc.) is done here — that's handled
+    separately at the dataset level if/when needed.
 
     Because a 0.5 probability threshold is still a poor operating point
     under this much imbalance, Phase D calibrates a per-task threshold —
@@ -165,7 +165,7 @@ val_loaders   = [to_dataloader(t['X_val'],   t['y_val'],   BATCH_SIZE, shuffle=F
 test_loaders  = [to_dataloader(t['X_test'],  t['y_test'],  BATCH_SIZE, shuffle=False) for t in tasks]
 input_size    = tasks[0]['X_train'].shape[1]
 
-# Per-task pos_weight for BCEWithLogitsLoss — corrects for the ~83-84%
+# Per-task pos_weight for the weighted BCELoss — corrects for the ~83-84%
 # "always predict no diabetes" majority-class baseline (see dataset.py)
 pos_weights = [compute_pos_weight(t['y_train'], mode=POS_WEIGHT_MODE) for t in tasks]
 

@@ -9,12 +9,13 @@ Three training functions:
 
 KEY DESIGN DECISIONS:
 
-    BCEWithLogitsLoss + pos_weight (class imbalance):
-        The model now outputs a raw logit (see model.py). BCEWithLogitsLoss
-        applies the sigmoid internally in a numerically stable way, and its
-        `pos_weight` argument scales up the loss for the minority (diabetic)
-        class — see dataset.compute_pos_weight(). This directly addresses
-        the ~83-84% "predict majority class" plateau seen without it.
+    Weighted BCELoss (class imbalance):
+        The model outputs a raw logit (see model.py), so a sigmoid is
+        applied here to get a probability, then nn.BCELoss is used with a
+        per-sample `weight` — positive (diabetic) samples are weighted by
+        `pos_weight` (see dataset.compute_pos_weight()), negative samples
+        stay at 1.0. This directly addresses the ~83-84% "predict majority
+        class" plateau seen without it.
 
     Warmup + cosine-decay LR scheduler (with a floor):
         Attention-based models like FT-Transformer tend to train more
@@ -53,6 +54,24 @@ import torch
 import torch.nn as nn
 
 
+def weighted_bce_loss(logits, y, pos_weight=None):
+    """
+    Weighted binary cross-entropy.
+
+    Applies sigmoid to the model's raw logit to get a probability, then
+    computes BCELoss with a per-sample weight: positive (diabetic)
+    samples are weighted by `pos_weight`, negative samples stay at 1.0.
+    This is what corrects for class imbalance (see dataset.compute_pos_weight).
+
+    pos_weight=None -> plain, unweighted BCELoss.
+    """
+    probs = torch.sigmoid(logits)
+    if pos_weight is None:
+        return nn.functional.binary_cross_entropy(probs, y)
+    weight = torch.where(y == 1, pos_weight, torch.ones_like(y))
+    return nn.functional.binary_cross_entropy(probs, y, weight=weight)
+
+
 def build_scheduler(optimizer, total_epochs, warmup_epochs=None, min_lr_ratio=0.3):
     """
     Linear warmup for `warmup_epochs`, then cosine decay down to
@@ -85,7 +104,6 @@ def train_normal(model, dataloader, epochs=50, lr=0.001, pos_weight=None,
     """
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = build_scheduler(optimizer, epochs, warmup_epochs, min_lr_ratio)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     history   = []
 
     model.train()
@@ -93,7 +111,7 @@ def train_normal(model, dataloader, epochs=50, lr=0.001, pos_weight=None,
         total = 0.0
         for X, y in dataloader:
             optimizer.zero_grad()
-            loss = criterion(model(X).reshape(-1), y)
+            loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
@@ -124,7 +142,6 @@ def train_ewc(model, dataloader, ewc_objects, lambda_, epochs=50, lr=0.001,
     """
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = build_scheduler(optimizer, epochs, warmup_epochs, min_lr_ratio)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     history   = []
 
     model.train()
@@ -133,7 +150,7 @@ def train_ewc(model, dataloader, ewc_objects, lambda_, epochs=50, lr=0.001,
 
         for X, y in dataloader:
             optimizer.zero_grad()
-            task_loss = criterion(model(X).reshape(-1), y)
+            task_loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight)
             ewc_loss  = sum(e.penalty(model, lambda_) for e in ewc_objects)
             loss      = task_loss + ewc_loss
             loss.backward()
@@ -185,7 +202,6 @@ def train_ewc_replay(model, dataloader, ewc_objects, replay_buffer,
     """
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = build_scheduler(optimizer, epochs, warmup_epochs, min_lr_ratio)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     history   = []
 
     model.train()
@@ -202,7 +218,7 @@ def train_ewc_replay(model, dataloader, ewc_objects, replay_buffer,
                 y = torch.cat([y, y_rep], dim=0)
 
             optimizer.zero_grad()
-            task_loss = criterion(model(X).reshape(-1), y)
+            task_loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight)
             ewc_loss  = sum(e.penalty(model, lambda_) for e in ewc_objects)
             loss      = task_loss + ewc_loss
             loss.backward()

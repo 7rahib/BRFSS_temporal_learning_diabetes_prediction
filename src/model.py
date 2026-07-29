@@ -28,9 +28,9 @@ ARCHITECTURE:
        let every feature-token attend to every other feature-token.
     4. Classification head — the [CLS] token's final representation is
        passed through a small MLP head that outputs a single raw logit.
-       (Training applies BCEWithLogitsLoss directly to this logit;
-       evaluation applies torch.sigmoid() to turn it into a 0-1
-       probability of diabetes.)
+       (Training applies torch.sigmoid() to this logit and then a
+       weighted BCELoss; evaluation applies torch.sigmoid() to turn it
+       into a 0-1 probability of diabetes.)
 
 NOTE ON FEATURES:
     All BRFSS columns used here are already numeric (binary, ordinal,
@@ -91,12 +91,12 @@ class FTTransformer(nn.Module):
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
 
         # --- Classification head ---
-        # NOTE: outputs a raw logit, not a probability. BCEWithLogitsLoss
-        # (used in train.py) applies the sigmoid internally in a more
-        # numerically stable way, and supports the pos_weight argument
-        # used to counteract class imbalance. Anywhere this model's
-        # output is turned into a 0-1 probability (evaluation, threshold
-        # calibration, etc.), apply torch.sigmoid(output) first.
+        # NOTE: outputs a raw logit, not a probability. train.py applies
+        # torch.sigmoid() to this logit and feeds it to a weighted
+        # BCELoss (the `pos_weight` there counteracts class imbalance).
+        # Anywhere else this model's output is turned into a 0-1
+        # probability (evaluation, threshold calibration, etc.), apply
+        # torch.sigmoid(output) first.
         self.norm = nn.LayerNorm(embed_dim)
         self.head = nn.Sequential(
             nn.Linear(embed_dim, head_hidden_dim),

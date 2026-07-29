@@ -16,8 +16,8 @@ CLASS IMBALANCE:
     These CSVs are NOT pre-balanced — diabetes prevalence is only
     ~15-17% in every year. This file does not do any resampling
     itself (no SMOTE, no sampler) — imbalance is instead handled at
-    training time via BCEWithLogitsLoss(pos_weight=...) in train.py,
-    using compute_pos_weight() below.
+    training time via a weighted BCELoss in train.py, using the
+    pos_weight computed by compute_pos_weight() below.
 
 DATA PLACEMENT:
     data/modified_diabetes_indicator_dataset_2015.csv
@@ -147,8 +147,8 @@ def to_dataloader(X, y, batch_size=64, shuffle=True):
 
 def compute_pos_weight(y_train, mode='full'):
     """
-    Compute the pos_weight for nn.BCEWithLogitsLoss from one task's
-    training labels.
+    Compute the pos_weight used by the weighted BCELoss (train.py) from
+    one task's training labels.
 
     mode='full' (default): (# negative) / (# positive) — the standard,
         most aggressive choice. This is what pushed recall from ~10% to
@@ -166,8 +166,8 @@ def compute_pos_weight(y_train, mode='full'):
         (diabetic) class — this shows up as very low recall at the
         default 0.5 threshold.
 
-    Returns: a scalar torch.Tensor, ready to pass as
-             nn.BCEWithLogitsLoss(pos_weight=...).
+    Returns: a scalar torch.Tensor, ready to pass as the `pos_weight`
+             argument of train.py's weighted_bce_loss().
     """
     y_train = np.asarray(y_train)
     n_pos   = float((y_train == 1).sum())
