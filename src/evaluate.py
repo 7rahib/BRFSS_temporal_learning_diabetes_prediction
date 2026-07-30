@@ -158,19 +158,29 @@ def compute_backward_transfer(results_log, task_names):
     return overall, per_task_bwt
 
 
-def compute_forward_transfer(results_log, task_names, baseline_accs):
+def compute_forward_transfer(pre_training_accs, task_names, baseline_accs):
     """
-    FWT = average [ R(i-1, i) - baseline_i ] for tasks i > 1.
+    FWT = average [ pre_i - baseline_i ] for tasks i > 1.
 
-    R(i-1, i)  = accuracy on task i measured before task i was trained
-    baseline_i = No-EWC standalone accuracy for task i (Phase A)
+    pre_i      = accuracy on task i, measured with the model exactly as
+                 it was right BEFORE training started on task i (a true
+                 "zero-shot" evaluation — the model has only ever seen
+                 earlier years' data). This is captured explicitly in
+                 main.py, right before each train_normal/train_ewc/
+                 train_ewc_replay call, since evaluate_seen_tasks()
+                 only ever evaluates already-trained tasks and can
+                 never produce this number on its own.
+    baseline_i = accuracy on task i once it WAS fully trained on its
+                 own data (from Phase A, No-EWC) — i.e. "the accuracy
+                 that's actually achievable for task i."
 
-    Positive FWT → earlier years helped future years.
+    Positive FWT → the model already captured some useful signal for
+                   task i from earlier years, before ever training on
+                   it directly.
     """
     per_task_fwt = {}
-    for i in range(1, len(task_names)):
-        name = task_names[i]
-        pre  = results_log[i - 1].get(name)
+    for name in task_names[1:]:
+        pre  = pre_training_accs.get(name)
         base = baseline_accs.get(name)
         if pre is not None and base is not None:
             per_task_fwt[name] = round(pre - base, 2)
@@ -186,20 +196,54 @@ def compute_forward_transfer(results_log, task_names, baseline_accs):
 # THRESHOLD CALIBRATION
 # ──────────────────────────────────────────
 
-def find_best_threshold(model, dataloader):
-    """Find threshold maximising F1. Returns (threshold, best_f1%)."""
-    labels, _, probs = get_predictions(model, dataloader)
-    best_thresh, best_f1 = 0.5, 0.0
-    for t in np.arange(0.05, 0.90, 0.05):
-        score = f1_score(labels, (probs >= t).astype(float), zero_division=0)
-        if score > best_f1:
-            best_f1, best_thresh = score, t
-    return round(float(best_thresh), 2), round(best_f1 * 100, 2)
-
-
-def calibrate_all_tasks(model, loaders, task_names):
+def find_best_threshold(model, dataloader, beta=2.0):
     """
-    Find best F1-maximising threshold per task.
+    Find the threshold that gives the best RECALL-weighted score,
+    instead of the best F1.
+
+    Why not just "maximise recall" directly: recall alone is maximised
+    at threshold = 0 (predict "diabetic" for every single patient),
+    which gives 100% recall but is a useless model — every patient
+    gets flagged, precision collapses, and the calibration step
+    becomes meaningless. Recall on its own has no downside built into
+    it, so a plain search for "max recall" always picks the lowest
+    threshold available.
+
+    Instead, this uses the F-beta score, the same idea as F1 but with
+    a tunable weight (`beta`) that controls how much more recall
+    matters than precision:
+        beta = 1  -> plain F1 (precision and recall weighted equally)
+        beta = 2  -> F2 (recall weighted 4x more than precision) <- used here
+        beta = higher -> even more recall-focused
+
+    F-beta formula: (1 + beta^2) * (precision * recall) /
+                    (beta^2 * precision + recall)
+    This still keeps precision in the picture (so it won't collapse to
+    threshold=0), but pushes the chosen threshold LOWER than plain F1
+    would, which is exactly what raises recall — a lower threshold
+    means the model needs less confidence before predicting "diabetic",
+    so it catches more true cases (higher recall) at the cost of more
+    false alarms (lower precision).
+
+    Returns (threshold, best_f_beta_score%, recall_at_that_threshold%).
+    """
+    labels, _, probs = get_predictions(model, dataloader)
+    best_thresh, best_score, best_recall = 0.5, 0.0, 0.0
+    for t in np.arange(0.05, 0.90, 0.05):
+        preds  = (probs >= t).astype(float)
+        prec   = precision_score(labels, preds, zero_division=0)
+        rec    = recall_score(labels, preds, zero_division=0)
+        denom  = (beta ** 2 * prec) + rec
+        score  = (1 + beta ** 2) * (prec * rec) / denom if denom > 0 else 0.0
+        if score > best_score:
+            best_score, best_thresh, best_recall = score, t, rec
+    return round(float(best_thresh), 2), round(best_score * 100, 2), round(best_recall * 100, 2)
+
+
+def calibrate_all_tasks(model, loaders, task_names, beta=2.0):
+    """
+    Find the best RECALL-weighted (F-beta, beta=2 by default) threshold
+    per task — see find_best_threshold() for why F1 was replaced.
 
     IMPORTANT: pass a VALIDATION split here, not the test split — picking
     a threshold on the same data you report final metrics on is a mild
@@ -208,12 +252,12 @@ def calibrate_all_tasks(model, loaders, task_names):
 
     Returns {name: threshold}.
     """
-    print("\n  Per-task threshold calibration:")
+    print("\n  Per-task threshold calibration (recall-weighted, F2):")
     thresholds = {}
     for name, loader in zip(task_names, loaders):
-        t, f1 = find_best_threshold(model, loader)
+        t, f_beta, recall = find_best_threshold(model, loader, beta=beta)
         thresholds[name] = t
-        print(f"    {name}: threshold={t:.2f}  (best F1={f1:.1f}%)")
+        print(f"    {name}: threshold={t:.2f}  (F2={f_beta:.1f}%, recall at this threshold={recall:.1f}%)")
     return thresholds
 
 

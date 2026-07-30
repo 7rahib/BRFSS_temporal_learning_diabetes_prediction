@@ -29,11 +29,11 @@ MODEL:
 
 CLASS IMBALANCE:
     These CSVs are NOT pre-balanced (~15-17% diabetic prevalence in every
-    year). Imbalance is handled at training time via a weighted BCELoss,
-    using a per-task pos_weight computed from the training labels (see
-    dataset.compute_pos_weight, POS_WEIGHT_MODE below). No resampling
-    (SMOTE, WeightedRandomSampler, etc.) is done here — that's handled
-    separately at the dataset level if/when needed.
+    year). Imbalance is handled at training time via
+    BCEWithLogitsLoss(pos_weight=...), computed per-task from the training
+    labels (see dataset.compute_pos_weight, POS_WEIGHT_MODE below). No
+    resampling (SMOTE, WeightedRandomSampler, etc.) is done here — that's
+    handled separately at the dataset level if/when needed.
 
     Because a 0.5 probability threshold is still a poor operating point
     under this much imbalance, Phase D calibrates a per-task threshold —
@@ -57,6 +57,10 @@ from src.dataset  import load_temporal_tasks, to_dataloader, compute_pos_weight
 from src.model    import init_model
 from src.ewc      import EWC
 from src.replay   import ReplayBuffer
+from src.fisher_delta import (
+    compute_fisher_delta, print_fisher_delta_table, save_fisher_delta,
+    print_top_weight_breakdown, save_top_weight_breakdown,
+)
 from src.train    import train_normal, train_ewc, train_ewc_replay
 from src.evaluate import (
     evaluate, evaluate_seen_tasks, full_metrics,
@@ -102,7 +106,7 @@ EPOCHS             = 5
 LR                 = 0.0015  # bumped alongside BATCH_SIZE (64->256, ~4x);
                             # Adam-family optimizers don't need full linear
                             # scaling like SGD, so ~1.5x rather than ~4x
-LAMBDA_EWC         = 1000    # RESET from 500 — ewc.py's Fisher normalisation
+LAMBDA_EWC         = 500    # RESET from 500 — ewc.py's Fisher normalisation
                           # changed from dividing by the global MAX to the
                           # global MEAN (see ewc.py). That makes typical
                           # Fisher values ~1000s of times larger than
@@ -117,7 +121,7 @@ BATCH_SIZE         = 256  # was 64 — larger batches tend to train
 MAX_FISHER_SAMPLES = 5000
 
 # Class-imbalance handling (see dataset.compute_pos_weight)
-POS_WEIGHT_MODE = 'full'  # 'full' = neg/pos ratio (aggressive, default).
+POS_WEIGHT_MODE = 'sqrt'  # 'full' = neg/pos ratio (aggressive, default).
                           # 'sqrt' = sqrt(neg/pos) (softer — trades some of
                           # the recall gain back for more precision).
 
@@ -165,7 +169,7 @@ val_loaders   = [to_dataloader(t['X_val'],   t['y_val'],   BATCH_SIZE, shuffle=F
 test_loaders  = [to_dataloader(t['X_test'],  t['y_test'],  BATCH_SIZE, shuffle=False) for t in tasks]
 input_size    = tasks[0]['X_train'].shape[1]
 
-# Per-task pos_weight for the weighted BCELoss — corrects for the ~83-84%
+# Per-task pos_weight for BCEWithLogitsLoss — corrects for the ~83-84%
 # "always predict no diabetes" majority-class baseline (see dataset.py)
 pos_weights = [compute_pos_weight(t['y_train'], mode=POS_WEIGHT_MODE) for t in tasks]
 
@@ -192,8 +196,14 @@ noewc_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT,
                                     FFN_DIM, ACTIVATION, HEAD_HIDDEN_DIM)
 noewc_log       = []
 noewc_histories = []
+noewc_pre_accs  = {}   # zero-shot accuracy on task i, captured right before training on it
 
 for i, name in enumerate(TASK_NAMES):
+    if i > 0:
+        zero_shot_acc = evaluate(noewc_model, test_loaders[i]) * 100
+        noewc_pre_accs[name] = round(zero_shot_acc, 2)
+        print(f"\n  Zero-shot accuracy on {name} before training on it: {zero_shot_acc:.2f}%")
+
     print(f"\n  [No-EWC] Training on {name}...")
     noewc_model, h = train_normal(noewc_model, train_loaders[i], EPOCHS, LR,
                                    pos_weight=pos_weights[i],
@@ -202,14 +212,13 @@ for i, name in enumerate(TASK_NAMES):
     print(f"\n  Evaluating all years after {name}:")
     noewc_log.append(evaluate_seen_tasks(noewc_model, test_loaders, TASK_NAMES, i))
 
-# Use Phase A log as FWT baseline — accuracy on Task i before Task i was trained
-# is already recorded in noewc_log[i-1][task_i_name]
+# FWT baseline — accuracy on Task i once it WAS fully trained (Phase A, No-EWC)
 baseline_accs = {name: noewc_log[i][name] for i, name in enumerate(TASK_NAMES)}
 print(f"\n  FWT baselines (from Phase A): {baseline_accs}")
 
 section("PHASE A: TRANSFER METRICS — No-EWC")
 bwt_noewc, per_bwt_noewc = compute_backward_transfer(noewc_log, TASK_NAMES)
-fwt_noewc, per_fwt_noewc = compute_forward_transfer(noewc_log, TASK_NAMES, baseline_accs)
+fwt_noewc, per_fwt_noewc = compute_forward_transfer(noewc_pre_accs, TASK_NAMES, baseline_accs)
 
 print("\n  Full metrics — No-EWC final model:")
 noewc_metrics = [full_metrics(noewc_model, loader, name)
@@ -231,6 +240,7 @@ ewc_model     = init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT,
 ewc_log       = []
 ewc_histories = []
 ewc_objects   = []
+ewc_pre_accs  = {}   # zero-shot accuracy on task i, captured right before training on it
 
 for i, name in enumerate(TASK_NAMES):
     if i == 0:
@@ -239,6 +249,10 @@ for i, name in enumerate(TASK_NAMES):
                                      pos_weight=pos_weights[i],
                                      warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
     else:
+        zero_shot_acc = evaluate(ewc_model, test_loaders[i]) * 100
+        ewc_pre_accs[name] = round(zero_shot_acc, 2)
+        print(f"\n  Zero-shot accuracy on {name} before training on it: {zero_shot_acc:.2f}%")
+
         print(f"\n  [EWC] Training on {name} (EWC protecting {i} previous year(s))...")
         ewc_model, h = train_ewc(ewc_model, train_loaders[i],
                                   ewc_objects, LAMBDA_EWC, EPOCHS, LR,
@@ -254,7 +268,7 @@ for i, name in enumerate(TASK_NAMES):
 
 section("PHASE B: TRANSFER METRICS — EWC")
 bwt_ewc, per_bwt_ewc = compute_backward_transfer(ewc_log, TASK_NAMES)
-fwt_ewc, per_fwt_ewc = compute_forward_transfer(ewc_log, TASK_NAMES, baseline_accs)
+fwt_ewc, per_fwt_ewc = compute_forward_transfer(ewc_pre_accs, TASK_NAMES, baseline_accs)
 
 print("\n  Full metrics — EWC final model:")
 ewc_metrics = [full_metrics(ewc_model, loader, name)
@@ -285,6 +299,8 @@ replay_buffer    = ReplayBuffer(
     replay_ratio=REPLAY_RATIO,
 )
 
+replay_pre_accs = {}   # zero-shot accuracy on task i, captured right before training on it
+
 for i, name in enumerate(TASK_NAMES):
     if i == 0:
         print(f"\n  [EWC+Replay] Training on {name} (first year — no EWC yet)...")
@@ -292,6 +308,10 @@ for i, name in enumerate(TASK_NAMES):
                                         pos_weight=pos_weights[i],
                                         warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
     else:
+        zero_shot_acc = evaluate(replay_model, test_loaders[i]) * 100
+        replay_pre_accs[name] = round(zero_shot_acc, 2)
+        print(f"\n  Zero-shot accuracy on {name} before training on it: {zero_shot_acc:.2f}%")
+
         print(f"\n  [EWC+Replay] Training on {name} "
               f"(EWC + {replay_buffer.total_stored:,} replay samples)...")
         replay_model, h = train_ewc_replay(
@@ -317,11 +337,36 @@ for i, name in enumerate(TASK_NAMES):
 
 section("PHASE C: TRANSFER METRICS — EWC + REPLAY")
 bwt_replay, per_bwt_replay = compute_backward_transfer(replay_log, TASK_NAMES)
-fwt_replay, per_fwt_replay = compute_forward_transfer(replay_log, TASK_NAMES, baseline_accs)
+fwt_replay, per_fwt_replay = compute_forward_transfer(replay_pre_accs, TASK_NAMES, baseline_accs)
 
 print("\n  Full metrics — EWC+Replay final model:")
 replay_metrics = [full_metrics(replay_model, loader, name)
                   for loader, name in zip(test_loaders, TASK_NAMES)]
+
+
+# ═══════════════════════════════════════════════════════════
+# FISHER DELTA — TEMPORAL DRIFT ANALYSIS
+#
+# Compares each phase's Fisher dictionaries year-over-year to see
+# whether the model kept relying on the same weights (stable trend)
+# or shifted to different weights (drift). Does not change how Fisher
+# itself is computed (ewc.py is untouched) - this only reads the
+# .fisher dictionaries already stored inside ewc_objects /
+# replay_ewc_objects, built above in Phase B and Phase C.
+# ═══════════════════════════════════════════════════════════
+section("FISHER DELTA: TEMPORAL DRIFT ANALYSIS")
+
+ewc_delta = compute_fisher_delta(ewc_objects, TASK_NAMES)
+print_fisher_delta_table(ewc_delta, "EWC only")
+save_fisher_delta(ewc_delta, 'fisher_delta_ewc.csv')
+print_top_weight_breakdown(ewc_delta, "EWC only")
+save_top_weight_breakdown(ewc_delta, 'fisher_delta_ewc_top_weights.csv')
+
+replay_delta = compute_fisher_delta(replay_ewc_objects, TASK_NAMES)
+print_fisher_delta_table(replay_delta, "EWC + Replay")
+save_fisher_delta(replay_delta, 'fisher_delta_replay.csv')
+print_top_weight_breakdown(replay_delta, "EWC + Replay")
+save_top_weight_breakdown(replay_delta, 'fisher_delta_replay_top_weights.csv')
 
 
 # ═══════════════════════════════════════════════════════════
