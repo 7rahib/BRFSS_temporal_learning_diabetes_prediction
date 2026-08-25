@@ -1,0 +1,11 @@
+Transition,Rank,Weight,Change
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,1,"head.3.weight[0, 29]",10519.291016
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,2,"head.3.weight[0, 25]",281.337402
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,3,"head.3.weight[0, 31]",268.120361
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,4,"head.3.weight[0, 4]",251.898438
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,5,"head.3.weight[0, 22]",187.754028
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,1,"head.3.weight[0, 29]",608.541992
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,2,"head.3.weight[0, 28]",574.688721
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,3,"head.3.weight[0, 31]",523.594482
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,4,"head.3.weight[0, 22]",504.504028
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,5,"head.3.weight[0, 15]",438.333496
