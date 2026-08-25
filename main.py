@@ -121,16 +121,23 @@ EPOCHS             = 5
 LR                 = 0.0015  # bumped alongside BATCH_SIZE (64->256, ~4x);
                             # Adam-family optimizers don't need full linear
                             # scaling like SGD, so ~1.5x rather than ~4x
-LAMBDA_EWC         = 500    # RESET from 500 — ewc.py's Fisher normalisation
-                          # changed from dividing by the global MAX to the
-                          # global MEAN (see ewc.py). That makes typical
-                          # Fisher values ~1000s of times larger than
-                          # before, so the old LAMBDA_EWC=500 (calibrated
-                          # for the old scale) would now massively
-                          # overshoot. 1 is a conservative starting point,
-                          # not a tuned value — check
-                          # 14_ewc_penalty_ratio.png after a run (target
-                          # 0.5-3.0) and adjust from here.
+FT_LAMBDA_EWC      = 500    # FT-Transformer's EWC strength. Checked against
+                          # 14_ewc_penalty_ratio.png — this value keeps
+                          # FT-Transformer's penalty ratio in the 0.5-3.0
+                          # target band.
+TABNET_LAMBDA_EWC  = 3000   # TabNet's own EWC strength (NEW — separate from
+                          # FT-Transformer's). Using FT_LAMBDA_EWC's value
+                          # here left TabNet's penalty ratio sitting well
+                          # below the 0.5 floor almost the whole run (see
+                          # results/tabnet/14_ewc_penalty_ratio.png before
+                          # this change) — TabNet's Fisher values are on a
+                          # different numeric scale (different architecture:
+                          # BatchNorm + attention masks vs FT-Transformer's
+                          # LayerNorm + self-attention), so the same lambda
+                          # doesn't transfer between the two models. 3000 is
+                          # a starting point, not a tuned value — rerun and
+                          # check 14_ewc_penalty_ratio.png for TabNet lands
+                          # in 0.5-3.0, and adjust from here if not.
 BATCH_SIZE         = 256  # was 64 — larger batches tend to train
                           # transformers more stably; LR bumped above to match
 MAX_FISHER_SAMPLES = 5000
@@ -199,7 +206,8 @@ print(f"  Tasks          : {TASK_NAMES}")
 print(f"  Pos weights    : ({POS_WEIGHT_MODE}) " +
       ", ".join(f"{n}={w.item():.2f}" for n, w in zip(TASK_NAMES, pos_weights)))
 print(f"\n  Models to run  : FT-Transformer, TabNet")
-print(f"  Lambda EWC     : {LAMBDA_EWC} | Replay samples: {REPLAY_SAMPLES_PER_TASK}")
+print(f"  Lambda EWC     : FT-Transformer={FT_LAMBDA_EWC}, TabNet={TABNET_LAMBDA_EWC}"
+      f" | Replay samples: {REPLAY_SAMPLES_PER_TASK}")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -209,7 +217,7 @@ print(f"  Lambda EWC     : {LAMBDA_EWC} | Replay samples: {REPLAY_SAMPLES_PER_TA
 # can be run once per model (FT-Transformer, then TabNet), each saving
 # its own CSVs and graphs to its own output_dir.
 # ═══════════════════════════════════════════════════════════
-def run_pipeline(model_name, make_model, output_dir):
+def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
     """
     Run Phases A-E for one model and save all results under output_dir.
 
@@ -218,11 +226,14 @@ def run_pipeline(model_name, make_model, output_dir):
                  initialised model for this model type
     output_dir : folder this model's CSVs and graphs are saved to, so
                  the two models' results never overwrite each other
+    lambda_ewc  : this model's own EWC strength (NEW — used to be a single
+                 shared LAMBDA_EWC for every model; see FT_LAMBDA_EWC /
+                 TABNET_LAMBDA_EWC above for why that's now per-model)
 
     Returns a dict of this model's final numbers, used later for the
     side-by-side summary printed at the very end of the script.
     """
-    section(f"MODEL: {model_name}")
+    section(f"MODEL: {model_name} (lambda_ewc={lambda_ewc})")
 
     # ═══════════════════════════════════════════════════════════
     # PHASE A — SEQUENTIAL WITHOUT EWC
@@ -294,7 +305,7 @@ def run_pipeline(model_name, make_model, output_dir):
 
             print(f"\n  [EWC] Training on {name} (EWC protecting {i} previous year(s))...")
             ewc_model, h = train_ewc(ewc_model, train_loaders[i],
-                                      ewc_objects, LAMBDA_EWC, EPOCHS, LR,
+                                      ewc_objects, lambda_ewc, EPOCHS, LR,
                                       pos_weight=pos_weights[i],
                                       warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO)
 
@@ -354,7 +365,7 @@ def run_pipeline(model_name, make_model, output_dir):
             replay_model, h = train_ewc_replay(
                 replay_model, train_loaders[i],
                 replay_ewc_objects, replay_buffer,
-                LAMBDA_EWC, EPOCHS, LR,
+                lambda_ewc, EPOCHS, LR,
                 pos_weight=pos_weights[i],
                 warmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO,
             )
@@ -501,21 +512,23 @@ def run_pipeline(model_name, make_model, output_dir):
 # ─────────────────────────────────────────
 # RUN BOTH MODELS THROUGH THE SAME PIPELINE
 # ─────────────────────────────────────────
-# Each entry: (display name, zero-argument model-builder, output folder)
+# Each entry: (display name, zero-argument model-builder, output folder, lambda_ewc)
 MODELS = [
     ("FT-Transformer",
      lambda: init_model(input_size, EMBED_DIM, N_HEADS, N_LAYERS, DROPOUT,
                         FFN_DIM, ACTIVATION, HEAD_HIDDEN_DIM),
-     "results/fttransformer"),
+     "results/fttransformer",
+     FT_LAMBDA_EWC),
     ("TabNet",
      lambda: init_tabnet_model(input_size, TABNET_HIDDEN_DIM, TABNET_N_STEPS,
                                TABNET_GAMMA, TABNET_DROPOUT),
-     "results/tabnet"),
+     "results/tabnet",
+     TABNET_LAMBDA_EWC),
 ]
 
 summaries = {}
-for model_name, make_model, output_dir in MODELS:
-    summaries[model_name] = run_pipeline(model_name, make_model, output_dir)
+for model_name, make_model, output_dir, lambda_ewc in MODELS:
+    summaries[model_name] = run_pipeline(model_name, make_model, output_dir, lambda_ewc)
 
 
 # ─────────────────────────────────────────
@@ -524,7 +537,8 @@ for model_name, make_model, output_dir in MODELS:
 section("FINAL SUMMARY — FT-Transformer vs TabNet")
 
 print(f"\n  Temporal tasks : 2015 → 2019 → 2023")
-print(f"  Lambda         : {LAMBDA_EWC} | Fisher: normalised | Epochs: {EPOCHS}")
+print(f"  Lambda         : FT-Transformer={FT_LAMBDA_EWC}, TabNet={TABNET_LAMBDA_EWC}"
+      f" | Fisher: normalised | Epochs: {EPOCHS}")
 print(f"  Replay samples : {REPLAY_SAMPLES_PER_TASK} per task | Ratio: {REPLAY_RATIO}")
 
 for model_name, s in summaries.items():
@@ -557,12 +571,12 @@ for model_name, s in summaries.items():
 
 print(f"\n  Graph 14 guidance (EWC penalty ratio):")
 print(f"    Target: 0.5–3.0  (EWC balanced with task loss)")
-print(f"    < 0.1  → increase LAMBDA_EWC")
-print(f"    > 5.0  → reduce  LAMBDA_EWC")
+print(f"    < 0.1  → increase that model's lambda_ewc (FT_LAMBDA_EWC / TABNET_LAMBDA_EWC)")
+print(f"    > 5.0  → reduce  that model's lambda_ewc (FT_LAMBDA_EWC / TABNET_LAMBDA_EWC)")
 
 print(f"\n  Primary results are graphs 08b/10b (calibrated) — NOT 08/10 (threshold 0.5).")
 print(f"  Each model's 16 graphs and 6 CSV files were saved separately:")
-for model_name, _, output_dir in MODELS:
+for model_name, _, output_dir, _ in MODELS:
     print(f"    {model_name:<15} -> {output_dir}/")
 print("DONE.")
 print("=" * 65)
