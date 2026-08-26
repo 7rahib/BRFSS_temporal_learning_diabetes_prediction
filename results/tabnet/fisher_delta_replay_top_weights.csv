@@ -1,11 +1,11 @@
 Transition,Rank,Weight,Change
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,1,attentive_transformers.0.0.bias[6],2710.922119
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,2,attentive_transformers.0.0.bias[1],2648.790527
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,3,attentive_transformers.0.0.bias[0],1571.125977
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,4,attentive_transformers.0.0.bias[25],368.463348
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,5,attentive_transformers.0.0.bias[9],368.34024
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,1,attentive_transformers.0.0.bias[24],244.176849
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,2,attentive_transformers.0.0.bias[1],197.91156
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,3,attentive_transformers.0.0.bias[26],93.941269
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,4,attentive_transformers.0.0.bias[20],78.690613
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,5,attentive_transformers.0.0.bias[3],73.704102
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,1,attentive_transformers.0.0.bias[0],1695.655396
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,2,attentive_transformers.0.0.bias[20],1196.137573
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,3,attentive_transformers.0.0.bias[21],348.758148
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,4,attentive_transformers.0.0.bias[9],347.013306
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,5,attentive_transformers.0.0.bias[6],325.647095
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,1,attentive_transformers.0.0.bias[20],153.201355
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,2,attentive_transformers.0.0.bias[0],122.511353
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,3,attentive_transformers.0.0.bias[1],115.691208
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,4,attentive_transformers.0.0.bias[6],74.747559
+Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,5,attentive_transformers.0.0.bias[9],66.760437
