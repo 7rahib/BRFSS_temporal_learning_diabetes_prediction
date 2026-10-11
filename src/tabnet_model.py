@@ -68,7 +68,7 @@ class GLUBlock(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
         self.linear = nn.Linear(in_dim, out_dim * 2)
-        self.bn     = nn.BatchNorm1d(out_dim * 2)
+        self.bn     = nn.LayerNorm(out_dim * 2)
 
     def forward(self, x):
         x = self.bn(self.linear(x))
@@ -96,7 +96,7 @@ class TabNet(nn.Module):
             GLUBlock(input_size, hidden_dim * 2) for _ in range(n_steps)
         ])
         self.attentive_transformers = nn.ModuleList([
-            nn.Sequential(nn.Linear(hidden_dim, input_size), nn.BatchNorm1d(input_size))
+            nn.Sequential(nn.Linear(hidden_dim, input_size), nn.LayerNorm(input_size))
             for _ in range(n_steps)
         ])
         self.dropout = nn.Dropout(dropout)

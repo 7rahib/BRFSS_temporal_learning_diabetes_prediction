@@ -188,7 +188,7 @@ def section(title):
 # ─────────────────────────────────────────
 # LOAD DATA (shared by both models — done once)
 # ─────────────────────────────────────────
-section("LOADING TEMPORAL DATA (2015 → 2019 → 2023)")
+section("LOADING TEMPORAL DATA (2015 → 2017 → 2019 → 2021 → 2023)")
 
 tasks, scaler, TASK_NAMES, feature_cols = load_temporal_tasks(val_size=VAL_SIZE)
 

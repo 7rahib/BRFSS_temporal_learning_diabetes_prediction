@@ -1,11 +1,21 @@
 Transition,Rank,Weight,Change
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,1,"head.3.weight[0, 30]",128.744385
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,2,"head.3.weight[0, 20]",101.890869
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,3,head.3.bias[0],98.059937
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,4,"head.3.weight[0, 22]",89.442566
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2019,5,"head.3.weight[0, 3]",87.879944
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,1,"head.3.weight[0, 4]",428.495117
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,2,"head.3.weight[0, 9]",418.458984
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,3,"head.3.weight[0, 13]",417.270508
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,4,"head.3.weight[0, 30]",391.638184
-Task 2 — BRFSS 2019 -> Task 3 — BRFSS 2023,5,"head.3.weight[0, 31]",371.187988
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,1,"head.3.weight[0, 18]",353.296387
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,2,"head.3.weight[0, 12]",334.154785
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,3,"head.3.weight[0, 15]",308.689453
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,4,"head.3.weight[0, 20]",306.816162
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,5,"head.3.weight[0, 3]",275.581543
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,1,"head.3.weight[0, 18]",342.232422
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,2,"head.3.weight[0, 15]",330.928223
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,3,"head.3.weight[0, 12]",309.640625
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,4,"head.3.weight[0, 24]",283.460693
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,5,"head.3.weight[0, 21]",270.718994
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,1,"head.3.weight[0, 18]",1033.150146
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,2,"head.3.weight[0, 12]",996.650146
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,3,"head.3.weight[0, 15]",957.491211
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,4,"head.3.weight[0, 21]",910.453613
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,5,"head.3.weight[0, 20]",870.508057
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,1,"head.3.weight[0, 18]",781.008545
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,2,"head.3.weight[0, 12]",767.34082
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,3,"head.3.weight[0, 15]",711.955078
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,4,"head.3.weight[0, 21]",697.590088
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,5,"head.3.weight[0, 24]",664.256348

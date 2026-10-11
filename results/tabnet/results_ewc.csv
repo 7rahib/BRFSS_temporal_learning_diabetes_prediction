@@ -1,4 +1,6 @@
-Stage,Task 1 — BRFSS 2015,Task 2 — BRFSS 2019,Task 3 — BRFSS 2023
-After Task 1,83.84,,
-After Task 2,83.22,82.46,
-After Task 3,83.89,83.17,82.87
+Stage,Task 1 — BRFSS 2015,Task 2 — BRFSS 2017,Task 3 — BRFSS 2019,Task 4 — BRFSS 2021,Task 5 — BRFSS 2023
+After Task 1,83.02,,,,
+After Task 2,83.02,82.78,,,
+After Task 3,83.02,82.78,81.98,,
+After Task 4,83.02,82.78,81.98,82.84,
+After Task 5,83.02,82.78,81.97,82.84,81.96

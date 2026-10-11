@@ -37,7 +37,9 @@ TARGET_COL         = 'Diabetes_binary'
 TARGET_CANDIDATES  = ['Diabetes_binary', 'Diabetes', 'diabetes', 'DIABETE3', 'diabete3']
 DATASET_PATHS      = {
     '2015': 'data/modified_diabetes_indicator_dataset_2015.csv',
+    '2017': 'data/modified_diabetes_indicator_dataset_2017.csv',
     '2019': 'data/modified_diabetes_indicator_dataset_2019.csv',
+    '2021': 'data/modified_diabetes_indicator_dataset_2021.csv',
     '2023': 'data/modified_diabetes_indicator_dataset_2023.csv',
 }
 

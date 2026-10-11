@@ -63,6 +63,8 @@ COLORS = {
     'replay': '#66BB6A',
 }
 
+TASK_COLORS = ['#1565C0', '#2E7D32', '#F9A825', '#B71C1C', '#6A1B9A']
+
 
 # ──────────────────────────────────────────
 # CORE PREDICTION UTILITIES
@@ -377,21 +379,21 @@ def plot_ewc_accuracy_over_stages(results_log, task_names, output_dir='results')
     _plot_stages(results_log, task_names,
                  'EWC — Accuracy on Each Year Over Stages',
                  '02_ewc_accuracy_stages.png',
-                 ['#2196F3', '#4CAF50', '#FF5722'], output_dir=output_dir)
+                 ['#2196F3', '#4CAF50', '#FF5722', '#FFC107', '#9C27B0'], output_dir=output_dir)
 
 
 def plot_replay_accuracy_over_stages(results_log, task_names, output_dir='results'):
     _plot_stages(results_log, task_names,
                  'EWC + Replay — Accuracy on Each Year Over Stages',
                  '03_replay_accuracy_stages.png',
-                 ['#1565C0', '#2E7D32', '#BF360C'], output_dir=output_dir)
+                 ['#1565C0', '#2E7D32', '#BF360C', '#F9A825', '#6A1B9A'], output_dir=output_dir)
 
 
 def plot_noewc_accuracy_over_stages(results_log, task_names, output_dir='results'):
     _plot_stages(results_log, task_names,
                  'WITHOUT EWC — Temporal Forgetting In Action',
                  '04_noewc_forgetting.png',
-                 ['#EF5350', '#FF7043', '#FFCA28'],
+                 ['#EF5350', '#FF7043', '#FFCA28', '#8D6E63', '#AB47BC'],
                  linestyle='--', output_dir=output_dir)
 
 
@@ -557,11 +559,10 @@ def plot_confusion_matrices_calibrated(models_dict, test_loaders, task_names,
 
 def plot_roc_curves(models_dict, test_loaders, task_names, output_dir='results'):
     """ROC curves for all tasks and all three methods."""
-    task_colors = ['#1565C0', '#2E7D32', '#B71C1C']
     styles      = {'No EWC': '--', 'EWC': '-', 'EWC + Replay': '-.'}
 
     plt.figure(figsize=(9, 7))
-    for loader, name, tc in zip(test_loaders, task_names, task_colors):
+    for loader, name, tc in zip(test_loaders, task_names, TASK_COLORS):
         for label, model in models_dict.items():
             labs, _, probs = get_predictions(model, loader)
             try:
