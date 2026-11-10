@@ -1,5 +1,5 @@
 Transition,Trend Correlation,Trend,Magnitude Change,Biggest Factor,Biggest Change
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,0.998,Similar (stable),0.076817,head.3.bias,201.798218
-Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,0.9983,Similar (stable),0.087705,head.3.bias,191.717163
-Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,0.9888,Similar (stable),0.130343,head.3.weight,251.006012
-Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,0.9996,Similar (stable),0.049931,head.3.bias,142.96814
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,0.997,Similar (stable),0.091373,head.3.weight,86.673492
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,0.9915,Similar (stable),0.113356,head.3.weight,151.884201
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,0.9824,Similar (stable),0.145276,head.3.weight,215.356598
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,0.9785,Similar (stable),0.175972,head.3.weight,247.388214

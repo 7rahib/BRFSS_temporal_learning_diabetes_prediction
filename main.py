@@ -75,6 +75,7 @@ from src.replay        import ReplayBuffer
 from src.fisher_delta import (
     compute_fisher_delta, print_fisher_delta_table, save_fisher_delta,
     print_top_weight_breakdown, save_top_weight_breakdown,
+    permutation_importance_by_year, print_and_save_perm, data_drift_by_year,
 )
 from src.train    import train_normal, train_ewc, train_ewc_replay
 from src.evaluate import (
@@ -117,7 +118,7 @@ torch.manual_seed(SEED)
 # ─────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────
-EPOCHS             = 5
+EPOCHS             = 1
 LR                 = 0.0015  # bumped alongside BATCH_SIZE (64->256, ~4x);
                             # Adam-family optimizers don't need full linear
                             # scaling like SGD, so ~1.5x rather than ~4x
@@ -208,6 +209,8 @@ print(f"  Pos weights    : ({POS_WEIGHT_MODE}) " +
 print(f"\n  Models to run  : FT-Transformer, TabNet")
 print(f"  Lambda EWC     : FT-Transformer={FT_LAMBDA_EWC}, TabNet={TABNET_LAMBDA_EWC}"
       f" | Replay samples: {REPLAY_SAMPLES_PER_TASK}")
+section("DATA DRIFT CHECK (raw features, before any model)")
+data_drift_by_year(tasks, TASK_NAMES, feature_cols)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -414,6 +417,21 @@ def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
     save_fisher_delta(replay_delta, 'fisher_delta_replay.csv', output_dir=output_dir)
     print_top_weight_breakdown(replay_delta, "EWC + Replay")
     save_top_weight_breakdown(replay_delta, 'fisher_delta_replay_top_weights.csv', output_dir=output_dir)
+
+        # ═══════════════════════════════════════════════════════════
+    # FEATURE-LEVEL DRIFT — permutation importance per year
+    # ═══════════════════════════════════════════════════════════
+    section(f"[{model_name}] FEATURE-LEVEL DRIFT: PERMUTATION IMPORTANCE")
+
+    print("\n  EWC only:")
+    ewc_py, ewc_share, ewc_perm = permutation_importance_by_year(
+        ewc_objects, make_model, tasks, TASK_NAMES, feature_cols)
+    print_and_save_perm(ewc_py, ewc_share, ewc_perm, "EWC only", "ewc", output_dir=output_dir)
+
+    print("\n  EWC + Replay:")
+    rep_py, rep_share, rep_perm = permutation_importance_by_year(
+        replay_ewc_objects, make_model, tasks, TASK_NAMES, feature_cols)
+    print_and_save_perm(rep_py, rep_share, rep_perm, "EWC + Replay", "replay", output_dir=output_dir)
 
     # ═══════════════════════════════════════════════════════════
     # PHASE D — THRESHOLD CALIBRATION

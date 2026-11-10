@@ -51,6 +51,7 @@ import torch
 import numpy as np
 import pandas as pd
 import os
+from sklearn.metrics import roc_auc_score
 
 
 def _flatten_fisher(fisher_dict):
@@ -283,3 +284,146 @@ def save_fisher_delta(results, filename, output_dir='results'):
     rows = [{k: v for k, v in r.items() if k != 'Top Weights'} for r in results]
     pd.DataFrame(rows).to_csv(f"{output_dir}/{filename}", index=False)
     print(f"  Saved: {output_dir}/{filename}")
+
+
+# ═══════════════════════════════════════════════════════════
+# FEATURE-LEVEL DRIFT — permutation importance per year
+# ═══════════════════════════════════════════════════════════
+
+def _years(task_names):
+    """'Task 1 — BRFSS 2015' -> '2015'"""
+    return [n.split('—')[-1].strip().replace('BRFSS ', '') for n in task_names]
+
+
+def _auc(model, X, y, batch_size=4096):
+    probs = []
+    with torch.no_grad():
+        for i in range(0, len(X), batch_size):
+            xb = torch.tensor(X[i:i + batch_size], dtype=torch.float32)
+            probs.append(torch.sigmoid(model(xb).reshape(-1)).numpy())
+    return roc_auc_score(y, np.concatenate(probs))
+
+
+def permutation_importance_by_year(ewc_objects, make_model, tasks, task_names,
+                                   feature_cols, n_repeats=3, max_rows=20000, seed=0):
+    """
+    Rebuild each year's snapshot model from ewc.saved_weights, then shuffle
+    one feature at a time on THAT year's test set and record the AUC drop.
+
+    Returns:
+        per_year : DataFrame (features x years)  AUC drop (AUC points)
+        share    : DataFrame (features x years)  % share of total reliance (each year sums to 100)
+        delta    : DataFrame, one row per (transition, feature)
+    """
+    assert len(ewc_objects) == len(tasks) == len(task_names), (
+        f"Length mismatch: {len(ewc_objects)} EWC objects, {len(tasks)} tasks, "
+        f"{len(task_names)} task names")
+
+    rng   = np.random.default_rng(seed)
+    years = _years(task_names)
+    cols  = {}
+
+    for ewc, t, year in zip(ewc_objects, tasks, years):
+        model = make_model()
+        model.load_state_dict(ewc.saved_weights)
+        model.eval()
+
+        idx  = rng.choice(len(t['X_test']), size=min(max_rows, len(t['X_test'])), replace=False)
+        X, y = t['X_test'][idx], t['y_test'][idx]
+        base = _auc(model, X, y)
+
+        imp = []
+        for j in range(X.shape[1]):
+            drops = []
+            for _ in range(n_repeats):
+                Xp = X.copy()
+                Xp[:, j] = rng.permutation(Xp[:, j])
+                drops.append(base - _auc(model, Xp, y))
+            imp.append(float(np.mean(drops)))
+        cols[year] = imp
+        print(f"    {year}: base AUC={base:.4f} | permutation importance done")
+
+    per_year = pd.DataFrame(cols, index=feature_cols)
+
+    # % share of total reliance per year (negatives are noise -> clipped to 0)
+    clipped = per_year.clip(lower=0)
+    share   = clipped / clipped.sum(axis=0) * 100
+
+    rows = []
+    for a, b in zip(years[:-1], years[1:]):
+        for feat in feature_cols:
+            sa, sb = share.loc[feat, a], share.loc[feat, b]
+            rows.append({
+                'Transition':        f"{a} -> {b}",
+                'Feature':           feat,
+                'AUC_drop_from':     round(per_year.loc[feat, a], 5),
+                'AUC_drop_to':       round(per_year.loc[feat, b], 5),
+                'AUC_Change':        round(per_year.loc[feat, b] - per_year.loc[feat, a], 5),
+                'Share_from_%':      round(sa, 3),
+                'Share_to_%':        round(sb, 3),
+                'Change_pp':         round(sb - sa, 3),
+                # unstable when the starting share is tiny, so blank below 0.5%
+                'Relative_Change_%': round((sb - sa) / sa * 100, 1) if sa >= 0.5 else np.nan,
+            })
+    delta = pd.DataFrame(rows)
+    delta['Rank'] = (delta.assign(abs_c=delta['Change_pp'].abs())
+                          .groupby('Transition')['abs_c']
+                          .rank(ascending=False, method='first').astype(int))
+    return per_year, share, delta
+
+
+def print_and_save_perm(per_year, share, delta, label, prefix, output_dir='results', top_n=5):
+    os.makedirs(output_dir, exist_ok=True)
+    per_year.round(5).to_csv(f"{output_dir}/{prefix}_perm_importance_auc_by_year.csv")
+    share.round(3).to_csv(f"{output_dir}/{prefix}_perm_importance_share_by_year.csv")
+    delta.sort_values(['Transition', 'Rank']).to_csv(
+        f"{output_dir}/{prefix}_perm_importance_delta.csv", index=False)
+
+    print(f"\n  Feature-level drift — {label} (top {top_n} per transition)")
+    for t, g in delta.groupby('Transition', sort=False):
+        print(f"\n    {t}:")
+        for _, r in g.nsmallest(top_n, 'Rank').iterrows():
+            rel = f"{r['Relative_Change_%']:+.0f}%" if pd.notna(r['Relative_Change_%']) else "n/a"
+            print(f"      {int(r['Rank'])}. {r['Feature']:<20} "
+                  f"{r['Share_from_%']:>5.2f}% -> {r['Share_to_%']:>5.2f}%  "
+                  f"({r['Change_pp']:+.2f} pp, {rel})  "
+                  f"[AUC drop {r['AUC_drop_from']:.4f} -> {r['AUC_drop_to']:.4f}]")
+    print(f"  Saved 3 CSVs to {output_dir}/ with prefix '{prefix}_perm_importance_'")
+
+
+# ═══════════════════════════════════════════════════════════
+# RAW-DATA CHECK — did the data itself change, or only the model?
+# ═══════════════════════════════════════════════════════════
+
+def data_drift_by_year(tasks, task_names, feature_cols,
+                       output_dir='results/data_drift', top_n=5):
+    """
+    Per year: mean of each (standardised) feature, and its correlation with
+    the diabetes label. Means are in pooled-scaler units, so +0.10 means
+    0.10 SD above the all-years average.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    years = _years(task_names)
+    means, corrs = {}, {}
+
+    for t, yr in zip(tasks, years):
+        X = t['X_train']
+        y = t['y_train'].astype(float)
+        Xc, yc = X - X.mean(axis=0), y - y.mean()
+        means[yr] = X.mean(axis=0)
+        corrs[yr] = (Xc * yc[:, None]).sum(axis=0) / (
+            np.sqrt((Xc ** 2).sum(axis=0)) * np.sqrt((yc ** 2).sum()) + 1e-12)
+
+    mean_df = pd.DataFrame(means, index=feature_cols)
+    corr_df = pd.DataFrame(corrs, index=feature_cols)
+    mean_df.round(4).to_csv(f"{output_dir}/feature_mean_by_year.csv")
+    corr_df.round(4).to_csv(f"{output_dir}/feature_label_corr_by_year.csv")
+
+    print(f"\n  Data drift — biggest changes in feature/label correlation (top {top_n})")
+    for a, b in zip(years[:-1], years[1:]):
+        change = corr_df[b] - corr_df[a]
+        print(f"\n    {a} -> {b}:")
+        for f in change.abs().sort_values(ascending=False).head(top_n).index:
+            print(f"      {f:<20} corr {corr_df.loc[f, a]:+.3f} -> {corr_df.loc[f, b]:+.3f} "
+                  f"({change[f]:+.3f}) | mean {mean_df.loc[f, a]:+.3f} -> {mean_df.loc[f, b]:+.3f}")
+    print(f"  Saved: {output_dir}/feature_mean_by_year.csv, feature_label_corr_by_year.csv")
