@@ -1,0 +1,1553 @@
+Logging to: C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\logs\run_log_20261122_231639.txt
+
+=================================================================
+  LOADING TEMPORAL DATA (2015 → 2017 → 2019 → 2021 → 2023)
+=================================================================
+
+  Loading BRFSS datasets...
+  BRFSS 2015: 20,000 rows | 14.7% diabetic | 29 features
+  BRFSS 2017: 20,000 rows | 15.4% diabetic | 30 features
+  BRFSS 2019: 20,000 rows | 16.2% diabetic | 29 features
+  BRFSS 2021: 20,000 rows | 15.7% diabetic | 30 features
+  BRFSS 2023: 20,000 rows | 16.7% diabetic | 30 features
+
+  Shared features across all years: 27
+
+  Scaler fitted on 100,000 combined rows
+
+  Building tasks:
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 1: 13,600 train | 2,400 val | 4,000 test | 14.7% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 2: 13,600 train | 2,400 val | 4,000 test | 15.4% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 3: 13,600 train | 2,400 val | 4,000 test | 16.2% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 4: 13,600 train | 2,400 val | 4,000 test | 15.7% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 5: 13,600 train | 2,400 val | 4,000 test | 16.8% diabetic
+
+  Input features : 27
+  Tasks          : ['Task 1 — BRFSS 2015', 'Task 2 — BRFSS 2017', 'Task 3 — BRFSS 2019', 'Task 4 — BRFSS 2021', 'Task 5 — BRFSS 2023']
+  Pos weights    : (sqrt) Task 1 — BRFSS 2015=2.41, Task 2 — BRFSS 2017=2.35, Task 3 — BRFSS 2019=2.27, Task 4 — BRFSS 2021=2.32, Task 5 — BRFSS 2023=2.23
+
+  Models to run  : FT-Transformer, TabNet
+  Lambda EWC     : FT-Transformer=500, TabNet=3000 | Replay samples: 20000
+
+=================================================================
+  MODEL: FT-Transformer (lambda_ewc=500)
+=================================================================
+
+=================================================================
+  [FT-Transformer] PHASE A: SEQUENTIAL — WITHOUT EWC (forgetting baseline)
+=================================================================
+
+Model ready — FT-Transformer | 27 input features
+  Embed dim: 64 | Heads: 4 | Layers: 2 | Dropout: 0.1
+  FFN dim: 256 | Activation: gelu | Head hidden dim: 32
+
+  [No-EWC] Training on Task 1 — BRFSS 2015...
+    Epoch 1/1 | Loss: 0.6054 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 82.82%
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 83.88%
+
+  [No-EWC] Training on Task 2 — BRFSS 2017...
+    Epoch 1/1 | Loss: 0.5257 | LR: 0.001500
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 84.83%
+    Task 2 — BRFSS 2017: 85.43%
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 87.30%
+
+  [No-EWC] Training on Task 3 — BRFSS 2019...
+    Epoch 1/1 | Loss: 0.5296 | LR: 0.001500
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 77.71%
+    Task 2 — BRFSS 2017: 79.08%
+    Task 3 — BRFSS 2019: 80.88%
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 78.76%
+
+  [No-EWC] Training on Task 4 — BRFSS 2021...
+    Epoch 1/1 | Loss: 0.6143 | LR: 0.001500
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 85.66%
+    Task 2 — BRFSS 2017: 86.10%
+    Task 3 — BRFSS 2019: 88.10%
+    Task 4 — BRFSS 2021: 85.41%
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 86.45%
+
+  [No-EWC] Training on Task 5 — BRFSS 2023...
+    Epoch 1/1 | Loss: 0.5351 | LR: 0.001500
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 83.43%
+    Task 2 — BRFSS 2017: 83.79%
+    Task 3 — BRFSS 2019: 86.68%
+    Task 4 — BRFSS 2021: 82.10%
+    Task 5 — BRFSS 2023: 81.80%
+
+  FWT baselines (from Phase A): {'Task 1 — BRFSS 2015': 82.82, 'Task 2 — BRFSS 2017': 85.43, 'Task 3 — BRFSS 2019': 80.88, 'Task 4 — BRFSS 2021': 85.41, 'Task 5 — BRFSS 2023': 81.8}
+
+=================================================================
+  [FT-Transformer] PHASE A: TRANSFER METRICS — No-EWC
+=================================================================
+
+  Backward Transfer (BWT): +0.36%
+    Task 1 — BRFSS 2015: +0.61%  ✓
+    Task 2 — BRFSS 2017: -1.64%  ✓
+    Task 3 — BRFSS 2019: +5.80%  ✓
+    Task 4 — BRFSS 2021: -3.31%  ✗
+
+  Forward Transfer (FWT): +0.72%
+    Task 2 — BRFSS 2017: -1.55%  ✗ negative
+    Task 3 — BRFSS 2019: +6.42%  ✓ positive
+    Task 4 — BRFSS 2021: -6.65%  ✗ negative
+    Task 5 — BRFSS 2023: +4.65%  ✓ positive
+
+  Full metrics — No-EWC final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 83.43%
+    Precision : 38.82%
+    Recall    : 49.77%  <- most important clinically
+    F1 Score  : 43.62%
+    AUC-ROC   : 0.8168
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 83.79%
+    Precision : 44.07%
+    Recall    : 56.69%  <- most important clinically
+    F1 Score  : 49.59%
+    AUC-ROC   : 0.8546
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 86.68%
+    Precision : 46.71%
+    Recall    : 62.30%  <- most important clinically
+    F1 Score  : 53.39%
+    AUC-ROC   : 0.8556
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 82.10%
+    Precision : 35.21%
+    Recall    : 40.86%  <- most important clinically
+    F1 Score  : 37.83%
+    AUC-ROC   : 0.7772
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 81.80%
+    Precision : 44.13%
+    Recall    : 55.78%  <- most important clinically
+    F1 Score  : 49.28%
+    AUC-ROC   : 0.8187
+
+=================================================================
+  [FT-Transformer] PHASE B: SEQUENTIAL — WITH EWC (fixed LR)
+=================================================================
+
+Model ready — FT-Transformer | 27 input features
+  Embed dim: 64 | Heads: 4 | Layers: 2 | Dropout: 0.1
+  FFN dim: 256 | Activation: gelu | Head hidden dim: 32
+
+  [EWC] Training on Task 1 — BRFSS 2015 (first year — no EWC yet)...
+    Epoch 1/1 | Loss: 0.6053 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 85.69%
+
+  Computing normalised Fisher for Task 1 — BRFSS 2015...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=2987.3633  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 86.65%
+
+  [EWC] Training on Task 2 — BRFSS 2017 (EWC protecting 1 previous year(s))...
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 84.14%
+    Task 2 — BRFSS 2017: 85.46%
+
+  Computing normalised Fisher for Task 2 — BRFSS 2017...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=3113.5984  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 86.69%
+
+  [EWC] Training on Task 3 — BRFSS 2019 (EWC protecting 2 previous year(s))...
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 84.14%
+    Task 2 — BRFSS 2017: 85.45%
+    Task 3 — BRFSS 2019: 86.72%
+
+  Computing normalised Fisher for Task 3 — BRFSS 2019...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=3071.6157  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 84.52%
+
+  [EWC] Training on Task 4 — BRFSS 2021 (EWC protecting 3 previous year(s))...
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 83.99%
+    Task 2 — BRFSS 2017: 85.44%
+    Task 3 — BRFSS 2019: 86.63%
+    Task 4 — BRFSS 2021: 84.60%
+
+  Computing normalised Fisher for Task 4 — BRFSS 2021...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=3128.8381  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 82.39%
+
+  [EWC] Training on Task 5 — BRFSS 2023 (EWC protecting 4 previous year(s))...
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 83.97%
+    Task 2 — BRFSS 2017: 85.44%
+    Task 3 — BRFSS 2019: 86.64%
+    Task 4 — BRFSS 2021: 84.58%
+    Task 5 — BRFSS 2023: 82.39%
+
+  Computing normalised Fisher for Task 5 — BRFSS 2023...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=2979.0210  mean=1.000000  (mean should be ~1.0)
+
+=================================================================
+  [FT-Transformer] PHASE B: TRANSFER METRICS — EWC
+=================================================================
+
+  Backward Transfer (BWT): -0.46%
+    Task 1 — BRFSS 2015: -1.72%  ✓
+    Task 2 — BRFSS 2017: -0.02%  ✓
+    Task 3 — BRFSS 2019: -0.08%  ✓
+    Task 4 — BRFSS 2021: -0.02%  ✓
+
+  Forward Transfer (FWT): +1.68%
+    Task 2 — BRFSS 2017: +1.22%  ✓ positive
+    Task 3 — BRFSS 2019: +5.81%  ✓ positive
+    Task 4 — BRFSS 2021: -0.89%  ✗ negative
+    Task 5 — BRFSS 2023: +0.59%  ✓ positive
+
+  Full metrics — EWC final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 83.97%
+    Precision : 37.12%
+    Recall    : 35.19%  <- most important clinically
+    F1 Score  : 36.13%
+    AUC-ROC   : 0.7929
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 85.44%
+    Precision : 48.03%
+    Recall    : 43.33%  <- most important clinically
+    F1 Score  : 45.56%
+    AUC-ROC   : 0.8443
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 86.64%
+    Precision : 45.43%
+    Recall    : 45.24%  <- most important clinically
+    F1 Score  : 45.33%
+    AUC-ROC   : 0.8437
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 84.58%
+    Precision : 37.74%
+    Recall    : 24.12%  <- most important clinically
+    F1 Score  : 29.43%
+    AUC-ROC   : 0.7572
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 82.39%
+    Precision : 42.02%
+    Recall    : 29.32%  <- most important clinically
+    F1 Score  : 34.54%
+    AUC-ROC   : 0.8091
+
+=================================================================
+  [FT-Transformer] PHASE C: SEQUENTIAL — WITH EWC + REPLAY BUFFER
+=================================================================
+
+Model ready — FT-Transformer | 27 input features
+  Embed dim: 64 | Heads: 4 | Layers: 2 | Dropout: 0.1
+  FFN dim: 256 | Activation: gelu | Head hidden dim: 32
+
+  [EWC+Replay] Training on Task 1 — BRFSS 2015 (first year — no EWC yet)...
+    Epoch 1/1 | Loss: 0.6507 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 80.95%
+
+  Storing replay samples from Task 1 — BRFSS 2015...
+  Replay buffer: stored 13600 samples | total stored tasks: 1
+
+  Computing normalised Fisher for Task 1 — BRFSS 2015...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=4019.7852  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 83.31%
+
+  [EWC+Replay] Training on Task 2 — BRFSS 2017 (EWC + 13,600 replay samples)...
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 81.08%
+    Task 2 — BRFSS 2017: 83.33%
+
+  Storing replay samples from Task 2 — BRFSS 2017...
+  Replay buffer: stored 13600 samples | total stored tasks: 2
+
+  Computing normalised Fisher for Task 2 — BRFSS 2017...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=3844.0200  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 84.70%
+
+  [EWC+Replay] Training on Task 3 — BRFSS 2019 (EWC + 27,200 replay samples)...
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 80.94%
+    Task 2 — BRFSS 2017: 83.24%
+    Task 3 — BRFSS 2019: 84.66%
+
+  Storing replay samples from Task 3 — BRFSS 2019...
+  Replay buffer: stored 13600 samples | total stored tasks: 3
+
+  Computing normalised Fisher for Task 3 — BRFSS 2019...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=3965.7764  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 80.82%
+
+  [EWC+Replay] Training on Task 4 — BRFSS 2021 (EWC + 40,800 replay samples)...
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 81.09%
+    Task 2 — BRFSS 2017: 83.49%
+    Task 3 — BRFSS 2019: 84.79%
+    Task 4 — BRFSS 2021: 80.82%
+
+  Storing replay samples from Task 4 — BRFSS 2021...
+  Replay buffer: stored 13600 samples | total stored tasks: 4
+
+  Computing normalised Fisher for Task 4 — BRFSS 2021...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=4024.6501  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 80.38%
+
+  [EWC+Replay] Training on Task 5 — BRFSS 2023 (EWC + 54,400 replay samples)...
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 81.10%
+    Task 2 — BRFSS 2017: 83.50%
+    Task 3 — BRFSS 2019: 84.82%
+    Task 4 — BRFSS 2021: 80.82%
+    Task 5 — BRFSS 2023: 80.35%
+
+  Storing replay samples from Task 5 — BRFSS 2023...
+  Replay buffer: stored 13600 samples | total stored tasks: 5
+
+  Computing normalised Fisher for Task 5 — BRFSS 2023...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=4019.3792  mean=1.000000  (mean should be ~1.0)
+
+=================================================================
+  [FT-Transformer] PHASE C: TRANSFER METRICS — EWC + REPLAY
+=================================================================
+
+  Backward Transfer (BWT): +0.12%
+    Task 1 — BRFSS 2015: +0.15%  ✓
+    Task 2 — BRFSS 2017: +0.17%  ✓
+    Task 3 — BRFSS 2019: +0.16%  ✓
+    Task 4 — BRFSS 2021: +0.00%  ✓
+
+  Forward Transfer (FWT): -1.08%
+    Task 2 — BRFSS 2017: -2.12%  ✗ negative
+    Task 3 — BRFSS 2019: +3.82%  ✓ positive
+    Task 4 — BRFSS 2021: -4.59%  ✗ negative
+    Task 5 — BRFSS 2023: -1.42%  ✗ negative
+
+  Full metrics — EWC+Replay final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 81.10%
+    Precision : 34.82%
+    Recall    : 53.58%  <- most important clinically
+    F1 Score  : 42.21%
+    AUC-ROC   : 0.8047
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 83.50%
+    Precision : 43.56%
+    Recall    : 58.71%  <- most important clinically
+    F1 Score  : 50.01%
+    AUC-ROC   : 0.8471
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 84.82%
+    Precision : 41.93%
+    Recall    : 62.19%  <- most important clinically
+    F1 Score  : 50.09%
+    AUC-ROC   : 0.8410
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 80.82%
+    Precision : 31.64%
+    Recall    : 37.87%  <- most important clinically
+    F1 Score  : 34.48%
+    AUC-ROC   : 0.7681
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 80.35%
+    Precision : 40.85%
+    Recall    : 53.60%  <- most important clinically
+    F1 Score  : 46.37%
+    AUC-ROC   : 0.8163
+
+=================================================================
+  [FT-Transformer] FISHER DELTA: TEMPORAL DRIFT ANALYSIS
+=================================================================
+
+  Fisher Delta — EWC only
+  --------------------------------------------------------------------------------------------------------------
+  Transition       Correlation               Trend    Magnitude                            Biggest Factor    Change
+  --------------------------------------------------------------------------------------------------------------
+  Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017        0.986    Similar (stable)     0.191034                               head.3.bias208.107971
+  Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019       0.9983    Similar (stable)     0.089622  transformer.layers.0.self_attn.out_proj. 29.729149
+  Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021       0.9894    Similar (stable)     0.199383  transformer.layers.0.self_attn.out_proj.  73.28875
+  Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023        0.996    Similar (stable)     0.132936                               head.3.bias 67.379303
+  Saved: results/fttransformer/fisher_delta_ewc.csv
+
+  Top 5 Individual Weight Changes — EWC only
+
+    Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017:
+      1. head.3.weight[0, 7]                           change=578.5381
+      2. head.3.weight[0, 22]                          change=524.3180
+      3. head.3.weight[0, 8]                           change=512.8240
+      4. head.3.weight[0, 14]                          change=457.5834
+      5. head.3.weight[0, 28]                          change=387.2633
+
+    Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019:
+      1. transformer.layers.0.self_attn.out_proj.bias[55] change=152.7462
+      2. transformer.layers.0.self_attn.in_proj_bias[148] change=143.0347
+      3. cls_token[0, 0, 18]                           change=120.9261
+      4. transformer.layers.0.self_attn.out_proj.bias[57] change=114.2120
+      5. transformer.layers.0.self_attn.in_proj_bias[189] change=110.0826
+
+    Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021:
+      1. head.3.weight[0, 22]                          change=367.2996
+      2. transformer.layers.0.self_attn.out_proj.bias[36] change=363.5657
+      3. transformer.layers.0.self_attn.out_proj.bias[62] change=324.4534
+      4. transformer.layers.0.self_attn.out_proj.bias[55] change=301.8241
+      5. transformer.layers.0.self_attn.in_proj_bias[148] change=272.8867
+
+    Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023:
+      1. transformer.layers.0.self_attn.out_proj.bias[36] change=205.0251
+      2. transformer.layers.0.self_attn.out_proj.bias[55] change=200.6899
+      3. transformer.layers.0.self_attn.out_proj.bias[62] change=199.3378
+      4. head.3.weight[0, 22]                          change=174.2552
+      5. transformer.layers.0.self_attn.out_proj.bias[57] change=159.9034
+  Saved: results/fttransformer/fisher_delta_ewc_top_weights.csv
+
+  Fisher Delta — EWC + Replay
+  --------------------------------------------------------------------------------------------------------------
+  Transition       Correlation               Trend    Magnitude                            Biggest Factor    Change
+  --------------------------------------------------------------------------------------------------------------
+  Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017       0.9955    Similar (stable)     0.135489                             head.3.weight 70.217659
+  Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019       0.9952    Similar (stable)     0.126015                             head.3.weight 80.373283
+  Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021        0.997    Similar (stable)     0.098594                             head.3.weight 57.522408
+  Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023       0.9995    Similar (stable)     0.055713                               head.3.bias 17.290146
+  Saved: results/fttransformer/fisher_delta_replay.csv
+
+  Top 5 Individual Weight Changes — EWC + Replay
+
+    Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017:
+      1. head.3.weight[0, 22]                          change=363.3488
+      2. head.3.weight[0, 1]                           change=359.4407
+      3. head.3.weight[0, 20]                          change=232.4044
+      4. transformer.layers.0.self_attn.in_proj_bias[163] change=215.4458
+      5. head.3.weight[0, 2]                           change=214.8783
+
+    Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019:
+      1. head.3.weight[0, 22]                          change=461.9461
+      2. head.3.weight[0, 1]                           change=435.7184
+      3. head.3.weight[0, 15]                          change=269.8620
+      4. head.3.weight[0, 2]                           change=249.7458
+      5. head.3.weight[0, 3]                           change=242.5706
+
+    Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021:
+      1. head.3.weight[0, 1]                           change=382.4923
+      2. head.3.weight[0, 22]                          change=380.7587
+      3. head.3.weight[0, 15]                          change=234.1761
+      4. transformer.layers.0.self_attn.out_proj.bias[38] change=223.0454
+      5. head.3.weight[0, 3]                           change=209.7937
+
+    Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023:
+      1. cls_token[0, 0, 41]                           change=108.7572
+      2. head.3.weight[0, 20]                          change=106.3518
+      3. transformer.layers.0.self_attn.out_proj.bias[41] change=87.3125
+      4. transformer.layers.0.self_attn.out_proj.bias[26] change=72.0253
+      5. head.3.weight[0, 21]                          change=62.0806
+  Saved: results/fttransformer/fisher_delta_replay_top_weights.csv
+
+=================================================================
+  [FT-Transformer] FEATURE DRIFT: WHICH RISK FACTORS SHIFTED
+=================================================================
+
+  Top features by reliance share (%) — ewc
+               BRFSS 2015  BRFSS 2017  BRFSS 2019  BRFSS 2021  BRFSS 2023
+Age                  32.1        11.0        27.5        16.1        20.8
+BMI                  13.8        23.0        20.1        17.1        18.0
+BloodPressure        11.3        19.1        13.3         9.2        16.6
+Cholesterol          29.4        26.8        12.6        29.5        14.7
+GeneralHealth         6.4        10.6         9.6        13.2        11.9
+
+  Biggest share changes, BRFSS 2015 -> BRFSS 2017 (ewc):
+Age             -21.11
+BMI               9.15
+BloodPressure     7.81
+GeneralHealth     4.18
+Cholesterol      -2.56
+
+  Biggest share changes, BRFSS 2017 -> BRFSS 2019 (ewc):
+Age              16.56
+Cholesterol     -14.19
+BloodPressure    -5.76
+Income            3.57
+BMI              -2.88
+
+  Biggest share changes, BRFSS 2019 -> BRFSS 2021 (ewc):
+Cholesterol      16.85
+Age             -11.40
+BloodPressure    -4.12
+GeneralHealth     3.62
+Race              3.16
+
+  Biggest share changes, BRFSS 2021 -> BRFSS 2023 (ewc):
+Cholesterol        -14.76
+BloodPressure        7.35
+EmploymentStatus     5.36
+Age                  4.64
+DiffWalk             3.37
+
+  Top features by reliance share (%) — replay
+               BRFSS 2015  BRFSS 2017  BRFSS 2019  BRFSS 2021  BRFSS 2023
+Cholesterol          41.2        42.5        21.5        42.7        24.3
+Age                  22.7         7.6        24.5        11.4        18.0
+BMI                  11.0        16.6        16.4        11.9        15.1
+GeneralHealth         5.7         8.2         9.6        10.7        12.2
+BloodPressure         6.7        14.6        12.0         7.5        11.3
+
+  Biggest share changes, BRFSS 2015 -> BRFSS 2017 (replay):
+Age             -15.14
+BloodPressure     7.89
+Arthritis        -6.91
+BMI               5.62
+GeneralHealth     2.49
+
+  Biggest share changes, BRFSS 2017 -> BRFSS 2019 (replay):
+Cholesterol        -21.00
+Age                 16.89
+Income               4.29
+EmploymentStatus     2.72
+BloodPressure       -2.65
+
+  Biggest share changes, BRFSS 2019 -> BRFSS 2021 (replay):
+Cholesterol         21.11
+Age                -13.09
+BloodPressure       -4.49
+BMI                 -4.49
+EmploymentStatus    -2.72
+
+  Biggest share changes, BRFSS 2021 -> BRFSS 2023 (replay):
+Cholesterol        -18.32
+Age                  6.59
+EmploymentStatus     4.47
+BloodPressure        3.82
+BMI                  3.18
+
+=================================================================
+  [FT-Transformer] PHASE D: PER-YEAR THRESHOLD CALIBRATION
+=================================================================
+
+  Thresholds are picked on the VALIDATION split, then applied to the
+  (unseen) test split below — avoids tuning and reporting on the same data.
+
+  Calibrating — No-EWC model...
+
+  Per-task threshold calibration (recall-weighted, F2):
+    Task 1 — BRFSS 2015: threshold=0.35  (F2=65.4%, recall at this threshold=82.2%)
+    Task 2 — BRFSS 2017: threshold=0.40  (F2=64.6%, recall at this threshold=79.4%)
+    Task 3 — BRFSS 2019: threshold=0.30  (F2=60.3%, recall at this threshold=81.2%)
+    Task 4 — BRFSS 2021: threshold=0.30  (F2=57.8%, recall at this threshold=78.8%)
+    Task 5 — BRFSS 2023: threshold=0.25  (F2=60.4%, recall at this threshold=85.9%)
+
+  Calibrating — EWC model...
+
+  Per-task threshold calibration (recall-weighted, F2):
+    Task 1 — BRFSS 2015: threshold=0.25  (F2=65.4%, recall at this threshold=88.9%)
+    Task 2 — BRFSS 2017: threshold=0.30  (F2=63.1%, recall at this threshold=82.8%)
+    Task 3 — BRFSS 2019: threshold=0.15  (F2=58.7%, recall at this threshold=87.6%)
+    Task 4 — BRFSS 2021: threshold=0.15  (F2=59.1%, recall at this threshold=85.0%)
+    Task 5 — BRFSS 2023: threshold=0.10  (F2=59.1%, recall at this threshold=91.4%)
+
+  Calibrating — EWC+Replay model...
+
+  Per-task threshold calibration (recall-weighted, F2):
+    Task 1 — BRFSS 2015: threshold=0.20  (F2=64.3%, recall at this threshold=84.8%)
+    Task 2 — BRFSS 2017: threshold=0.30  (F2=63.5%, recall at this threshold=78.6%)
+    Task 3 — BRFSS 2019: threshold=0.10  (F2=61.6%, recall at this threshold=91.1%)
+    Task 4 — BRFSS 2021: threshold=0.15  (F2=59.2%, recall at this threshold=77.5%)
+    Task 5 — BRFSS 2023: threshold=0.10  (F2=59.7%, recall at this threshold=85.6%)
+
+  Calibrated metrics — No-EWC:
+
+  [Task 1 — BRFSS 2015] (threshold=0.35)
+    Accuracy  : 76.20%
+    Precision : 31.24%
+    Recall    : 70.61%  <- most important clinically
+    F1 Score  : 43.32%
+    AUC-ROC   : 0.8168
+
+  [Task 2 — BRFSS 2017] (threshold=0.40)
+    Accuracy  : 80.05%
+    Precision : 38.22%
+    Recall    : 67.90%  <- most important clinically
+    F1 Score  : 48.91%
+    AUC-ROC   : 0.8546
+
+  [Task 3 — BRFSS 2019] (threshold=0.30)
+    Accuracy  : 73.13%
+    Precision : 29.07%
+    Recall    : 82.89%  <- most important clinically
+    F1 Score  : 43.04%
+    AUC-ROC   : 0.8556
+
+  [Task 4 — BRFSS 2021] (threshold=0.30)
+    Accuracy  : 72.10%
+    Precision : 28.32%
+    Recall    : 71.39%  <- most important clinically
+    F1 Score  : 40.55%
+    AUC-ROC   : 0.7772
+
+  [Task 5 — BRFSS 2023] (threshold=0.25)
+    Accuracy  : 64.63%
+    Precision : 29.13%
+    Recall    : 85.99%  <- most important clinically
+    F1 Score  : 43.52%
+    AUC-ROC   : 0.8187
+
+  Calibrated metrics — EWC:
+
+  [Task 1 — BRFSS 2015] (threshold=0.25)
+    Accuracy  : 70.79%
+    Precision : 27.50%
+    Recall    : 77.46%  <- most important clinically
+    F1 Score  : 40.59%
+    AUC-ROC   : 0.7929
+
+  [Task 2 — BRFSS 2017] (threshold=0.30)
+    Accuracy  : 76.16%
+    Precision : 34.56%
+    Recall    : 77.82%  <- most important clinically
+    F1 Score  : 47.86%
+    AUC-ROC   : 0.8443
+
+  [Task 3 — BRFSS 2019] (threshold=0.15)
+    Accuracy  : 63.87%
+    Precision : 23.92%
+    Recall    : 89.48%  <- most important clinically
+    F1 Score  : 37.75%
+    AUC-ROC   : 0.8437
+
+  [Task 4 — BRFSS 2021] (threshold=0.15)
+    Accuracy  : 68.79%
+    Precision : 26.59%
+    Recall    : 76.19%  <- most important clinically
+    F1 Score  : 39.42%
+    AUC-ROC   : 0.7572
+
+  [Task 5 — BRFSS 2023] (threshold=0.10)
+    Accuracy  : 56.38%
+    Precision : 25.56%
+    Recall    : 91.62%  <- most important clinically
+    F1 Score  : 39.96%
+    AUC-ROC   : 0.8091
+
+  Calibrated metrics — EWC+Replay:
+
+  [Task 1 — BRFSS 2015] (threshold=0.20)
+    Accuracy  : 72.90%
+    Precision : 29.01%
+    Recall    : 76.27%  <- most important clinically
+    F1 Score  : 42.04%
+    AUC-ROC   : 0.8047
+
+  [Task 2 — BRFSS 2017] (threshold=0.30)
+    Accuracy  : 78.29%
+    Precision : 35.71%
+    Recall    : 67.99%  <- most important clinically
+    F1 Score  : 46.83%
+    AUC-ROC   : 0.8471
+
+  [Task 3 — BRFSS 2019] (threshold=0.10)
+    Accuracy  : 65.87%
+    Precision : 24.69%
+    Recall    : 87.20%  <- most important clinically
+    F1 Score  : 38.49%
+    AUC-ROC   : 0.8410
+
+  [Task 4 — BRFSS 2021] (threshold=0.15)
+    Accuracy  : 72.16%
+    Precision : 27.59%
+    Recall    : 67.01%  <- most important clinically
+    F1 Score  : 39.08%
+    AUC-ROC   : 0.7681
+
+  [Task 5 — BRFSS 2023] (threshold=0.10)
+    Accuracy  : 64.60%
+    Precision : 29.36%
+    Recall    : 87.74%  <- most important clinically
+    F1 Score  : 44.00%
+    AUC-ROC   : 0.8163
+
+=================================================================
+  [FT-Transformer] PHASE E: SAVING RESULTS AND GENERATING 16 GRAPHS -> results/fttransformer/
+=================================================================
+  Saved: results/fttransformer/results_noewc.csv
+  Saved: results/fttransformer/results_ewc.csv
+  Saved: results/fttransformer/results_replay.csv
+  Saved: results/fttransformer/metrics_noewc.csv
+  Saved: results/fttransformer/metrics_ewc.csv
+  Saved: results/fttransformer/metrics_replay.csv
+
+  Generating graphs...
+  Saved: 01_final_accuracy.png
+  Saved: 02_ewc_accuracy_stages.png
+  Saved: 03_replay_accuracy_stages.png
+  Saved: 04_noewc_forgetting.png
+  Saved: 05_backward_transfer.png
+  Saved: 06_forward_transfer.png
+  Saved: 07_transfer_summary.png
+  Saved: 08_confusion_matrices_uncalibrated.png
+  Saved: 08b_confusion_matrices_calibrated.png
+  Saved: 09_roc_curves.png
+  Saved: 10_precision_recall_f1_uncalibrated.png
+  Saved: 10b_precision_recall_f1_calibrated.png
+  Saved: 11_heatmap_ewc.png
+  Saved: 12_heatmap_replay.png
+  Saved: 13_training_loss_curves.png
+  Saved: 14_ewc_penalty_ratio.png
+
+=================================================================
+  MODEL: TabNet (lambda_ewc=3000)
+=================================================================
+
+=================================================================
+  [TabNet] PHASE A: SEQUENTIAL — WITHOUT EWC (forgetting baseline)
+=================================================================
+
+Model ready — TabNet | 27 input features
+  Hidden dim: 32 | Steps: 3 | Gamma: 1.5 | Dropout: 0.1
+
+  [No-EWC] Training on Task 1 — BRFSS 2015...
+    Epoch 1/1 | Loss: 0.5991 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 82.61%
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 84.04%
+
+  [No-EWC] Training on Task 2 — BRFSS 2017...
+    Epoch 1/1 | Loss: 0.4778 | LR: 0.001500
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 83.93%
+    Task 2 — BRFSS 2017: 84.62%
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 86.92%
+
+  [No-EWC] Training on Task 3 — BRFSS 2019...
+    Epoch 1/1 | Loss: 0.5115 | LR: 0.001500
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 85.66%
+    Task 2 — BRFSS 2017: 86.02%
+    Task 3 — BRFSS 2019: 87.62%
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 84.92%
+
+  [No-EWC] Training on Task 4 — BRFSS 2021...
+    Epoch 1/1 | Loss: 0.5581 | LR: 0.001500
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 82.60%
+    Task 2 — BRFSS 2017: 83.64%
+    Task 3 — BRFSS 2019: 85.64%
+    Task 4 — BRFSS 2021: 81.92%
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 81.90%
+
+  [No-EWC] Training on Task 5 — BRFSS 2023...
+    Epoch 1/1 | Loss: 0.5086 | LR: 0.001500
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 84.47%
+    Task 2 — BRFSS 2017: 85.44%
+    Task 3 — BRFSS 2019: 87.01%
+    Task 4 — BRFSS 2021: 83.45%
+    Task 5 — BRFSS 2023: 83.80%
+
+  FWT baselines (from Phase A): {'Task 1 — BRFSS 2015': 82.61, 'Task 2 — BRFSS 2017': 84.62, 'Task 3 — BRFSS 2019': 87.62, 'Task 4 — BRFSS 2021': 81.92, 'Task 5 — BRFSS 2023': 83.8}
+
+=================================================================
+  [TabNet] PHASE A: TRANSFER METRICS — No-EWC
+=================================================================
+
+  Backward Transfer (BWT): +0.90%
+    Task 1 — BRFSS 2015: +1.86%  ✓
+    Task 2 — BRFSS 2017: +0.82%  ✓
+    Task 3 — BRFSS 2019: -0.61%  ✓
+    Task 4 — BRFSS 2021: +1.53%  ✓
+
+  Forward Transfer (FWT): -0.04%
+    Task 2 — BRFSS 2017: -0.58%  ✗ negative
+    Task 3 — BRFSS 2019: -0.70%  ✗ negative
+    Task 4 — BRFSS 2021: +3.00%  ✓ positive
+    Task 5 — BRFSS 2023: -1.90%  ✗ negative
+
+  Full metrics — No-EWC final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 84.47%
+    Precision : 40.54%
+    Recall    : 44.03%  <- most important clinically
+    F1 Score  : 42.22%
+    AUC-ROC   : 0.8224
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 85.44%
+    Precision : 48.44%
+    Recall    : 55.24%  <- most important clinically
+    F1 Score  : 51.62%
+    AUC-ROC   : 0.8646
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 87.01%
+    Precision : 47.44%
+    Recall    : 56.15%  <- most important clinically
+    F1 Score  : 51.43%
+    AUC-ROC   : 0.8558
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 83.45%
+    Precision : 38.31%
+    Recall    : 39.65%  <- most important clinically
+    F1 Score  : 38.97%
+    AUC-ROC   : 0.7872
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 83.80%
+    Precision : 49.00%
+    Recall    : 54.76%  <- most important clinically
+    F1 Score  : 51.72%
+    AUC-ROC   : 0.8298
+
+=================================================================
+  [TabNet] PHASE B: SEQUENTIAL — WITH EWC (fixed LR)
+=================================================================
+
+Model ready — TabNet | 27 input features
+  Hidden dim: 32 | Steps: 3 | Gamma: 1.5 | Dropout: 0.1
+
+  [EWC] Training on Task 1 — BRFSS 2015 (first year — no EWC yet)...
+    Epoch 1/1 | Loss: 0.6008 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 84.29%
+
+  Computing normalised Fisher for Task 1 — BRFSS 2015...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=675.9901  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 84.76%
+
+  [EWC] Training on Task 2 — BRFSS 2017 (EWC protecting 1 previous year(s))...
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 84.29%
+    Task 2 — BRFSS 2017: 84.77%
+
+  Computing normalised Fisher for Task 2 — BRFSS 2017...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=635.0240  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 86.23%
+
+  [EWC] Training on Task 3 — BRFSS 2019 (EWC protecting 2 previous year(s))...
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 84.29%
+    Task 2 — BRFSS 2017: 84.77%
+    Task 3 — BRFSS 2019: 86.23%
+
+  Computing normalised Fisher for Task 3 — BRFSS 2019...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=692.1670  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 83.66%
+
+  [EWC] Training on Task 4 — BRFSS 2021 (EWC protecting 3 previous year(s))...
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 84.29%
+    Task 2 — BRFSS 2017: 84.76%
+    Task 3 — BRFSS 2019: 86.23%
+    Task 4 — BRFSS 2021: 83.66%
+
+  Computing normalised Fisher for Task 4 — BRFSS 2021...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=667.9682  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 82.77%
+
+  [EWC] Training on Task 5 — BRFSS 2023 (EWC protecting 4 previous year(s))...
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 84.29%
+    Task 2 — BRFSS 2017: 84.76%
+    Task 3 — BRFSS 2019: 86.23%
+    Task 4 — BRFSS 2021: 83.66%
+    Task 5 — BRFSS 2023: 82.77%
+
+  Computing normalised Fisher for Task 5 — BRFSS 2023...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=728.2576  mean=1.000000  (mean should be ~1.0)
+
+=================================================================
+  [TabNet] PHASE B: TRANSFER METRICS — EWC
+=================================================================
+
+  Backward Transfer (BWT): -0.00%
+    Task 1 — BRFSS 2015: +0.00%  ✓
+    Task 2 — BRFSS 2017: -0.01%  ✓
+    Task 3 — BRFSS 2019: +0.00%  ✓
+    Task 4 — BRFSS 2021: +0.00%  ✓
+
+  Forward Transfer (FWT): -0.14%
+    Task 2 — BRFSS 2017: +0.14%  ✓ positive
+    Task 3 — BRFSS 2019: -1.39%  ✗ negative
+    Task 4 — BRFSS 2021: +1.74%  ✓ positive
+    Task 5 — BRFSS 2023: -1.03%  ✗ negative
+
+  Full metrics — EWC final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 84.29%
+    Precision : 35.73%
+    Recall    : 27.48%  <- most important clinically
+    F1 Score  : 31.06%
+    AUC-ROC   : 0.8002
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 84.76%
+    Precision : 43.67%
+    Recall    : 28.87%  <- most important clinically
+    F1 Score  : 34.76%
+    AUC-ROC   : 0.8380
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 86.23%
+    Precision : 42.66%
+    Recall    : 36.25%  <- most important clinically
+    F1 Score  : 39.19%
+    AUC-ROC   : 0.8286
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 83.66%
+    Precision : 31.67%
+    Recall    : 19.53%  <- most important clinically
+    F1 Score  : 24.16%
+    AUC-ROC   : 0.7647
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 82.77%
+    Precision : 43.05%
+    Recall    : 26.98%  <- most important clinically
+    F1 Score  : 33.17%
+    AUC-ROC   : 0.7958
+
+=================================================================
+  [TabNet] PHASE C: SEQUENTIAL — WITH EWC + REPLAY BUFFER
+=================================================================
+
+Model ready — TabNet | 27 input features
+  Hidden dim: 32 | Steps: 3 | Gamma: 1.5 | Dropout: 0.1
+
+  [EWC+Replay] Training on Task 1 — BRFSS 2015 (first year — no EWC yet)...
+    Epoch 1/1 | Loss: 0.6040 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 84.56%
+
+  Storing replay samples from Task 1 — BRFSS 2015...
+  Replay buffer: stored 13600 samples | total stored tasks: 1
+
+  Computing normalised Fisher for Task 1 — BRFSS 2015...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=647.3585  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 84.25%
+
+  [EWC+Replay] Training on Task 2 — BRFSS 2017 (EWC + 13,600 replay samples)...
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 84.56%
+    Task 2 — BRFSS 2017: 84.28%
+
+  Storing replay samples from Task 2 — BRFSS 2017...
+  Replay buffer: stored 13600 samples | total stored tasks: 2
+
+  Computing normalised Fisher for Task 2 — BRFSS 2017...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=649.0154  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 85.40%
+
+  [EWC+Replay] Training on Task 3 — BRFSS 2019 (EWC + 27,200 replay samples)...
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 84.56%
+    Task 2 — BRFSS 2017: 84.28%
+    Task 3 — BRFSS 2019: 85.40%
+
+  Storing replay samples from Task 3 — BRFSS 2019...
+  Replay buffer: stored 13600 samples | total stored tasks: 3
+
+  Computing normalised Fisher for Task 3 — BRFSS 2019...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=655.3455  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 82.47%
+
+  [EWC+Replay] Training on Task 4 — BRFSS 2021 (EWC + 40,800 replay samples)...
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 84.60%
+    Task 2 — BRFSS 2017: 84.28%
+    Task 3 — BRFSS 2019: 85.40%
+    Task 4 — BRFSS 2021: 82.46%
+
+  Storing replay samples from Task 4 — BRFSS 2021...
+  Replay buffer: stored 13600 samples | total stored tasks: 4
+
+  Computing normalised Fisher for Task 4 — BRFSS 2021...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=572.2977  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 82.85%
+
+  [EWC+Replay] Training on Task 5 — BRFSS 2023 (EWC + 54,400 replay samples)...
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 84.60%
+    Task 2 — BRFSS 2017: 84.28%
+    Task 3 — BRFSS 2019: 85.40%
+    Task 4 — BRFSS 2021: 82.47%
+    Task 5 — BRFSS 2023: 82.87%
+
+  Storing replay samples from Task 5 — BRFSS 2023...
+  Replay buffer: stored 13600 samples | total stored tasks: 5
+
+  Computing normalised Fisher for Task 5 — BRFSS 2023...
+  Fisher computed over 200 samples.
+  Fisher: min=0.0000  max=624.7778  mean=1.000000  (mean should be ~1.0)
+
+=================================================================
+  [TabNet] PHASE C: TRANSFER METRICS — EWC + REPLAY
+=================================================================
+
+  Backward Transfer (BWT): +0.01%
+    Task 1 — BRFSS 2015: +0.04%  ✓
+    Task 2 — BRFSS 2017: +0.00%  ✓
+    Task 3 — BRFSS 2019: +0.00%  ✓
+    Task 4 — BRFSS 2021: +0.01%  ✓
+
+  Forward Transfer (FWT): -0.75%
+    Task 2 — BRFSS 2017: -0.37%  ✗ negative
+    Task 3 — BRFSS 2019: -2.22%  ✗ negative
+    Task 4 — BRFSS 2021: +0.55%  ✓ positive
+    Task 5 — BRFSS 2023: -0.95%  ✗ negative
+
+  Full metrics — EWC+Replay final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 84.60%
+    Precision : 39.69%
+    Recall    : 37.59%  <- most important clinically
+    F1 Score  : 38.61%
+    AUC-ROC   : 0.7942
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 84.28%
+    Precision : 43.38%
+    Recall    : 38.54%  <- most important clinically
+    F1 Score  : 40.82%
+    AUC-ROC   : 0.8310
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 85.40%
+    Precision : 40.14%
+    Recall    : 39.17%  <- most important clinically
+    F1 Score  : 39.65%
+    AUC-ROC   : 0.8233
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 82.47%
+    Precision : 30.90%
+    Recall    : 25.52%  <- most important clinically
+    F1 Score  : 27.95%
+    AUC-ROC   : 0.7516
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 82.87%
+    Precision : 45.93%
+    Recall    : 45.57%  <- most important clinically
+    F1 Score  : 45.75%
+    AUC-ROC   : 0.8091
+
+=================================================================
+  [TabNet] FISHER DELTA: TEMPORAL DRIFT ANALYSIS
+=================================================================
+
+  Fisher Delta — EWC only
+  --------------------------------------------------------------------------------------------------------------
+  Transition       Correlation               Trend    Magnitude                            Biggest Factor    Change
+  --------------------------------------------------------------------------------------------------------------
+  Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017       0.9892    Similar (stable)     0.172801                               head.weight 20.447304
+  Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019       0.9898    Similar (stable)     0.139831                                 head.bias 18.555466
+  Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021       0.9947    Similar (stable)     0.122965                               head.weight 14.161688
+  Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023       0.9944    Similar (stable)     0.127319                               head.weight  16.78274
+  Saved: results/tabnet/fisher_delta_ewc.csv
+
+  Top 5 Individual Weight Changes — EWC only
+
+    Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017:
+      1. attentive_transformers.0.0.bias[16]           change=124.4261
+      2. attentive_transformers.1.0.weight[9, 5]       change=86.0074
+      3. head.weight[0, 20]                            change=85.1128
+      4. head.weight[0, 26]                            change=72.8299
+      5. head.weight[0, 7]                             change=59.7993
+
+    Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019:
+      1. attentive_transformers.0.0.bias[16]           change=134.9784
+      2. head.weight[0, 5]                             change=112.0013
+      3. attentive_transformers.1.0.weight[9, 5]       change=65.4163
+      4. attentive_transformers.0.0.bias[0]            change=63.4212
+      5. head.weight[0, 13]                            change=57.1430
+
+    Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021:
+      1. head.weight[0, 31]                            change=89.0847
+      2. attentive_transformers.1.0.weight[0, 5]       change=56.5823
+      3. head.weight[0, 20]                            change=51.1115
+      4. head.weight[0, 0]                             change=49.6866
+      5. head.weight[0, 27]                            change=34.3849
+
+    Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023:
+      1. head.weight[0, 31]                            change=79.3145
+      2. head.weight[0, 13]                            change=60.2894
+      3. attentive_transformers.0.0.bias[16]           change=51.9756
+      4. head.weight[0, 16]                            change=39.7611
+      5. head.weight[0, 6]                             change=39.7140
+  Saved: results/tabnet/fisher_delta_ewc_top_weights.csv
+
+  Fisher Delta — EWC + Replay
+  --------------------------------------------------------------------------------------------------------------
+  Transition       Correlation               Trend    Magnitude                            Biggest Factor    Change
+  --------------------------------------------------------------------------------------------------------------
+  Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017       0.9956    Similar (stable)     0.125032                               head.weight  10.83224
+  Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019       0.9954    Similar (stable)     0.136468                               head.weight 10.930799
+  Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021       0.9802    Similar (stable)      0.22766                               head.weight 21.859442
+  Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023       0.9856    Similar (stable)     0.186408                               head.weight 18.088459
+  Saved: results/tabnet/fisher_delta_replay.csv
+
+  Top 5 Individual Weight Changes — EWC + Replay
+
+    Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017:
+      1. feature_transformers.0.linear.bias[50]        change=54.8188
+      2. head.weight[0, 31]                            change=47.4808
+      3. feature_transformers.0.linear.bias[49]        change=41.8773
+      4. feature_transformers.0.linear.bias[42]        change=35.7241
+      5. head.weight[0, 1]                             change=31.5374
+
+    Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019:
+      1. feature_transformers.0.linear.bias[1]         change=59.3745
+      2. head.weight[0, 1]                             change=37.6474
+      3. head.weight[0, 25]                            change=36.2847
+      4. head.weight[0, 16]                            change=35.8897
+      5. feature_transformers.0.linear.bias[50]        change=33.5789
+
+    Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021:
+      1. feature_transformers.0.linear.bias[50]        change=136.3474
+      2. feature_transformers.0.linear.bias[1]         change=118.6906
+      3. head.weight[0, 16]                            change=111.7951
+      4. head.weight[0, 10]                            change=83.0479
+      5. attentive_transformers.1.0.weight[16, 31]     change=80.6434
+
+    Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023:
+      1. feature_transformers.0.linear.bias[50]        change=110.6021
+      2. head.weight[0, 16]                            change=94.4386
+      3. head.weight[0, 0]                             change=85.3308
+      4. head.weight[0, 1]                             change=74.3881
+      5. feature_transformers.0.linear.bias[1]         change=67.5493
+  Saved: results/tabnet/fisher_delta_replay_top_weights.csv
+
+=================================================================
+  [TabNet] FEATURE DRIFT: WHICH RISK FACTORS SHIFTED
+=================================================================
+
+  Top features by reliance share (%) — ewc
+               BRFSS 2015  BRFSS 2017  BRFSS 2019  BRFSS 2021  BRFSS 2023
+Age                  43.8        18.5        42.5        28.8        33.2
+Cholesterol          30.0        36.0        18.9        34.2        24.4
+GeneralHealth        16.7        20.2        16.4        27.0        17.5
+DiffWalk              5.8        16.7        12.8         3.0        15.9
+BloodPressure         1.3         5.1         4.0         3.2         4.5
+
+  Biggest share changes, BRFSS 2015 -> BRFSS 2017 (ewc):
+Age             -25.33
+DiffWalk         10.87
+Cholesterol       6.00
+BloodPressure     3.77
+GeneralHealth     3.46
+
+  Biggest share changes, BRFSS 2017 -> BRFSS 2019 (ewc):
+Age              23.98
+Cholesterol     -17.15
+DiffWalk         -3.84
+GeneralHealth    -3.72
+Income            1.18
+
+  Biggest share changes, BRFSS 2019 -> BRFSS 2021 (ewc):
+Cholesterol      15.32
+Age             -13.62
+GeneralHealth    10.61
+DiffWalk         -9.89
+BloodPressure    -0.85
+
+  Biggest share changes, BRFSS 2021 -> BRFSS 2023 (ewc):
+DiffWalk         12.97
+Cholesterol      -9.83
+GeneralHealth    -9.52
+Age               4.36
+Income           -1.40
+
+  Top features by reliance share (%) — replay
+                  BRFSS 2015  BRFSS 2017  BRFSS 2019  BRFSS 2021  BRFSS 2023
+BloodPressure           22.4        34.0        26.8        11.1        33.6
+GeneralHealth           28.5        29.5        33.8        42.8        33.1
+Age                     19.7         6.6        19.4        15.3        15.2
+Cholesterol             22.6        20.3         9.0        26.8         9.0
+EmploymentStatus         2.1         2.1         3.7         0.0         4.1
+
+  Biggest share changes, BRFSS 2015 -> BRFSS 2017 (replay):
+Age             -13.05
+BloodPressure    11.66
+Cholesterol      -2.33
+BMI               2.06
+DiffWalk          1.44
+
+  Biggest share changes, BRFSS 2017 -> BRFSS 2019 (replay):
+Age                 12.76
+Cholesterol        -11.29
+BloodPressure       -7.25
+GeneralHealth        4.26
+EmploymentStatus     1.64
+
+  Biggest share changes, BRFSS 2019 -> BRFSS 2021 (replay):
+Cholesterol         17.82
+BloodPressure      -15.72
+GeneralHealth        9.06
+Age                 -4.09
+EmploymentStatus    -3.72
+
+  Biggest share changes, BRFSS 2021 -> BRFSS 2023 (replay):
+BloodPressure       22.56
+Cholesterol        -17.78
+GeneralHealth       -9.73
+EmploymentStatus     4.09
+DiffWalk             0.89
+
+=================================================================
+  [TabNet] PHASE D: PER-YEAR THRESHOLD CALIBRATION
+=================================================================
+
+  Thresholds are picked on the VALIDATION split, then applied to the
+  (unseen) test split below — avoids tuning and reporting on the same data.
+
+  Calibrating — No-EWC model...
+
+  Per-task threshold calibration (recall-weighted, F2):
+    Task 1 — BRFSS 2015: threshold=0.25  (F2=64.6%, recall at this threshold=85.4%)
+    Task 2 — BRFSS 2017: threshold=0.30  (F2=65.1%, recall at this threshold=85.5%)
+    Task 3 — BRFSS 2019: threshold=0.20  (F2=58.5%, recall at this threshold=83.1%)
+    Task 4 — BRFSS 2021: threshold=0.25  (F2=59.4%, recall at this threshold=77.8%)
+    Task 5 — BRFSS 2023: threshold=0.15  (F2=62.8%, recall at this threshold=92.0%)
+
+  Calibrating — EWC model...
+
+  Per-task threshold calibration (recall-weighted, F2):
+    Task 1 — BRFSS 2015: threshold=0.25  (F2=64.6%, recall at this threshold=86.9%)
+    Task 2 — BRFSS 2017: threshold=0.25  (F2=60.4%, recall at this threshold=83.2%)
+    Task 3 — BRFSS 2019: threshold=0.20  (F2=57.9%, recall at this threshold=85.5%)
+    Task 4 — BRFSS 2021: threshold=0.25  (F2=59.9%, recall at this threshold=76.8%)
+    Task 5 — BRFSS 2023: threshold=0.20  (F2=57.5%, recall at this threshold=83.2%)
+
+  Calibrating — EWC+Replay model...
+
+  Per-task threshold calibration (recall-weighted, F2):
+    Task 1 — BRFSS 2015: threshold=0.20  (F2=63.6%, recall at this threshold=92.0%)
+    Task 2 — BRFSS 2017: threshold=0.20  (F2=58.1%, recall at this threshold=86.3%)
+    Task 3 — BRFSS 2019: threshold=0.25  (F2=61.0%, recall at this threshold=82.3%)
+    Task 4 — BRFSS 2021: threshold=0.25  (F2=59.2%, recall at this threshold=78.6%)
+    Task 5 — BRFSS 2023: threshold=0.15  (F2=57.3%, recall at this threshold=87.2%)
+
+  Calibrated metrics — No-EWC:
+
+  [Task 1 — BRFSS 2015] (threshold=0.25)
+    Accuracy  : 72.85%
+    Precision : 28.81%
+    Recall    : 75.28%  <- most important clinically
+    F1 Score  : 41.67%
+    AUC-ROC   : 0.8224
+
+  [Task 2 — BRFSS 2017] (threshold=0.30)
+    Accuracy  : 77.61%
+    Precision : 36.44%
+    Recall    : 79.57%  <- most important clinically
+    F1 Score  : 49.99%
+    AUC-ROC   : 0.8646
+
+  [Task 3 — BRFSS 2019] (threshold=0.20)
+    Accuracy  : 69.36%
+    Precision : 26.70%
+    Recall    : 86.05%  <- most important clinically
+    F1 Score  : 40.75%
+    AUC-ROC   : 0.8558
+
+  [Task 4 — BRFSS 2021] (threshold=0.25)
+    Accuracy  : 73.38%
+    Precision : 29.56%
+    Recall    : 72.10%  <- most important clinically
+    F1 Score  : 41.93%
+    AUC-ROC   : 0.7872
+
+  [Task 5 — BRFSS 2023] (threshold=0.15)
+    Accuracy  : 61.36%
+    Precision : 27.96%
+    Recall    : 91.25%  <- most important clinically
+    F1 Score  : 42.81%
+    AUC-ROC   : 0.8298
+
+  Calibrated metrics — EWC:
+
+  [Task 1 — BRFSS 2015] (threshold=0.25)
+    Accuracy  : 70.92%
+    Precision : 27.95%
+    Recall    : 79.68%  <- most important clinically
+    F1 Score  : 41.38%
+    AUC-ROC   : 0.8002
+
+  [Task 2 — BRFSS 2017] (threshold=0.25)
+    Accuracy  : 72.02%
+    Precision : 31.49%
+    Recall    : 84.20%  <- most important clinically
+    F1 Score  : 45.84%
+    AUC-ROC   : 0.8380
+
+  [Task 3 — BRFSS 2019] (threshold=0.20)
+    Accuracy  : 66.69%
+    Precision : 25.16%
+    Recall    : 87.08%  <- most important clinically
+    F1 Score  : 39.04%
+    AUC-ROC   : 0.8286
+
+  [Task 4 — BRFSS 2021] (threshold=0.25)
+    Accuracy  : 72.07%
+    Precision : 27.65%
+    Recall    : 67.78%  <- most important clinically
+    F1 Score  : 39.28%
+    AUC-ROC   : 0.7647
+
+  [Task 5 — BRFSS 2023] (threshold=0.20)
+    Accuracy  : 64.10%
+    Precision : 29.56%
+    Recall    : 91.46%  <- most important clinically
+    F1 Score  : 44.68%
+    AUC-ROC   : 0.7958
+
+  Calibrated metrics — EWC+Replay:
+
+  [Task 1 — BRFSS 2015] (threshold=0.20)
+    Accuracy  : 65.08%
+    Precision : 24.20%
+    Recall    : 80.24%  <- most important clinically
+    F1 Score  : 37.18%
+    AUC-ROC   : 0.7942
+
+  [Task 2 — BRFSS 2017] (threshold=0.20)
+    Accuracy  : 66.57%
+    Precision : 27.70%
+    Recall    : 85.59%  <- most important clinically
+    F1 Score  : 41.86%
+    AUC-ROC   : 0.8310
+
+  [Task 3 — BRFSS 2019] (threshold=0.25)
+    Accuracy  : 71.16%
+    Precision : 27.09%
+    Recall    : 80.08%  <- most important clinically
+    F1 Score  : 40.48%
+    AUC-ROC   : 0.8233
+
+  [Task 4 — BRFSS 2021] (threshold=0.25)
+    Accuracy  : 71.18%
+    Precision : 27.08%
+    Recall    : 68.68%  <- most important clinically
+    F1 Score  : 38.84%
+    AUC-ROC   : 0.7516
+
+  [Task 5 — BRFSS 2023] (threshold=0.15)
+    Accuracy  : 56.23%
+    Precision : 25.53%
+    Recall    : 91.94%  <- most important clinically
+    F1 Score  : 39.97%
+    AUC-ROC   : 0.8091
+
+=================================================================
+  [TabNet] PHASE E: SAVING RESULTS AND GENERATING 16 GRAPHS -> results/tabnet/
+=================================================================
+  Saved: results/tabnet/results_noewc.csv
+  Saved: results/tabnet/results_ewc.csv
+  Saved: results/tabnet/results_replay.csv
+  Saved: results/tabnet/metrics_noewc.csv
+  Saved: results/tabnet/metrics_ewc.csv
+  Saved: results/tabnet/metrics_replay.csv
+
+  Generating graphs...
+  Saved: 01_final_accuracy.png
+  Saved: 02_ewc_accuracy_stages.png
+  Saved: 03_replay_accuracy_stages.png
+  Saved: 04_noewc_forgetting.png
+  Saved: 05_backward_transfer.png
+  Saved: 06_forward_transfer.png
+  Saved: 07_transfer_summary.png
+  Saved: 08_confusion_matrices_uncalibrated.png
+  Saved: 08b_confusion_matrices_calibrated.png
+  Saved: 09_roc_curves.png
+  Saved: 10_precision_recall_f1_uncalibrated.png
+  Saved: 10b_precision_recall_f1_calibrated.png
+  Saved: 11_heatmap_ewc.png
+  Saved: 12_heatmap_replay.png
+  Saved: 13_training_loss_curves.png
+  Saved: 14_ewc_penalty_ratio.png
+
+=================================================================
+  FINAL SUMMARY — FT-Transformer vs TabNet
+=================================================================
+
+  Temporal tasks : 2015 → 2019 → 2023
+  Lambda         : FT-Transformer=500, TabNet=3000 | Fisher: normalised | Epochs: 1
+  Replay samples : 20000 per task | Ratio: 0.25
+
+  --- FT-Transformer ---
+  Year                               No-EWC        EWC   EWC+Replay
+  ----------------------------------------------------------------
+  Task 1 — BRFSS 2015                83.43%     83.97%       81.10%
+  Task 2 — BRFSS 2017                83.79%     85.44%       83.50%
+  Task 3 — BRFSS 2019                86.68%     86.64%       84.82%
+  Task 4 — BRFSS 2021                82.10%     84.58%       80.82%
+  Task 5 — BRFSS 2023                81.80%     82.39%       80.35%
+
+  Backward Transfer (BWT):
+    No-EWC     : +0.36%
+    EWC        : -0.46%
+    EWC+Replay : +0.12%  (closest to 0 = best retention)
+
+  Forward Transfer (FWT):
+    No-EWC     : +0.72%
+    EWC        : +1.68%
+    EWC+Replay : -1.08%  (highest = best forward knowledge sharing)
+
+  Calibrated Recall — EWC:
+    Task 1 — BRFSS 2015: Recall=77.46%  F1=40.59%  (t=0.25)
+    Task 2 — BRFSS 2017: Recall=77.82%  F1=47.86%  (t=0.3)
+    Task 3 — BRFSS 2019: Recall=89.48%  F1=37.75%  (t=0.15)
+    Task 4 — BRFSS 2021: Recall=76.19%  F1=39.42%  (t=0.15)
+    Task 5 — BRFSS 2023: Recall=91.62%  F1=39.96%  (t=0.1)
+
+  Calibrated Recall — EWC+Replay:
+    Task 1 — BRFSS 2015: Recall=76.27%  F1=42.04%  (t=0.2)
+    Task 2 — BRFSS 2017: Recall=67.99%  F1=46.83%  (t=0.3)
+    Task 3 — BRFSS 2019: Recall=87.2%  F1=38.49%  (t=0.1)
+    Task 4 — BRFSS 2021: Recall=67.01%  F1=39.08%  (t=0.15)
+    Task 5 — BRFSS 2023: Recall=87.74%  F1=44.0%  (t=0.1)
+
+  --- TabNet ---
+  Year                               No-EWC        EWC   EWC+Replay
+  ----------------------------------------------------------------
+  Task 1 — BRFSS 2015                84.47%     84.29%       84.60%
+  Task 2 — BRFSS 2017                85.44%     84.76%       84.28%
+  Task 3 — BRFSS 2019                87.01%     86.23%       85.40%
+  Task 4 — BRFSS 2021                83.45%     83.66%       82.47%
+  Task 5 — BRFSS 2023                83.80%     82.77%       82.87%
+
+  Backward Transfer (BWT):
+    No-EWC     : +0.90%
+    EWC        : -0.00%
+    EWC+Replay : +0.01%  (closest to 0 = best retention)
+
+  Forward Transfer (FWT):
+    No-EWC     : -0.04%
+    EWC        : -0.14%
+    EWC+Replay : -0.75%  (highest = best forward knowledge sharing)
+
+  Calibrated Recall — EWC:
+    Task 1 — BRFSS 2015: Recall=79.68%  F1=41.38%  (t=0.25)
+    Task 2 — BRFSS 2017: Recall=84.2%  F1=45.84%  (t=0.25)
+    Task 3 — BRFSS 2019: Recall=87.08%  F1=39.04%  (t=0.2)
+    Task 4 — BRFSS 2021: Recall=67.78%  F1=39.28%  (t=0.25)
+    Task 5 — BRFSS 2023: Recall=91.46%  F1=44.68%  (t=0.2)
+
+  Calibrated Recall — EWC+Replay:
+    Task 1 — BRFSS 2015: Recall=80.24%  F1=37.18%  (t=0.2)
+    Task 2 — BRFSS 2017: Recall=85.59%  F1=41.86%  (t=0.2)
+    Task 3 — BRFSS 2019: Recall=80.08%  F1=40.48%  (t=0.25)
+    Task 4 — BRFSS 2021: Recall=68.68%  F1=38.84%  (t=0.25)
+    Task 5 — BRFSS 2023: Recall=91.94%  F1=39.97%  (t=0.15)
+
+  Graph 14 guidance (EWC penalty ratio):
+    Target: 0.5–3.0  (EWC balanced with task loss)
+    < 0.1  → increase that model's lambda_ewc (FT_LAMBDA_EWC / TABNET_LAMBDA_EWC)
+    > 5.0  → reduce  that model's lambda_ewc (FT_LAMBDA_EWC / TABNET_LAMBDA_EWC)
+
+  Primary results are graphs 08b/10b (calibrated) — NOT 08/10 (threshold 0.5).
+  Each model's 16 graphs and 6 CSV files were saved separately:
+    FT-Transformer  -> results/fttransformer/
+    TabNet          -> results/tabnet/
+DONE.
+=================================================================

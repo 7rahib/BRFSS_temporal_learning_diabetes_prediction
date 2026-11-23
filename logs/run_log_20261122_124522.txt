@@ -1,0 +1,51 @@
+Logging to: C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\logs\run_log_20261122_124522.txt
+
+=================================================================
+  LOADING TEMPORAL DATA (2015 → 2017 → 2019 → 2021 → 2023)
+=================================================================
+
+  Loading BRFSS datasets...
+  BRFSS 2015: 441,225 rows | 14.7% diabetic | 29 features
+  BRFSS 2017: 449,697 rows | 15.3% diabetic | 30 features
+  BRFSS 2019: 418,098 rows | 15.9% diabetic | 29 features
+  BRFSS 2021: 438,635 rows | 15.4% diabetic | 30 features
+  BRFSS 2023: 433,028 rows | 16.2% diabetic | 30 features
+
+  Shared features across all years: 27
+Traceback (most recent call last):
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\main.py"[0m, line [35m227[0m, in [35m<module>[0m
+    tasks, scaler, TASK_NAMES, feature_cols = [31mload_temporal_tasks[0m[1;31m(val_size=VAL_SIZE)[0m
+                                              [31m~~~~~~~~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\src\dataset.py"[0m, line [35m118[0m, in [35mload_temporal_tasks[0m
+    all_X  = pd.concat([[31mdf[0m[1;31m[feature_cols][0m for df in dataframes.values()])
+                        [31m~~[0m[1;31m^^^^^^^^^^^^^^[0m
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\pandas\core\frame.py"[0m, line [35m4393[0m, in [35m__getitem__[0m
+    data = self.take(indexer, axis=1)
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\pandas\core\generic.py"[0m, line [35m4101[0m, in [35mtake[0m
+    new_data = self._mgr.take(
+        indices,
+        axis=self._get_block_manager_axis(axis),
+        verify=True,
+    )
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\pandas\core\internals\managers.py"[0m, line [35m1077[0m, in [35mtake[0m
+    return [31mself.reindex_indexer[0m[1;31m([0m
+           [31m~~~~~~~~~~~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mnew_axis=new_labels,[0m
+        [1;31m^^^^^^^^^^^^^^^^^^^^[0m
+    ...<2 lines>...
+        [1;31mallow_dups=True,[0m
+        [1;31m^^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\pandas\core\internals\managers.py"[0m, line [35m847[0m, in [35mreindex_indexer[0m
+    new_blocks = list(
+        self._slice_take_blocks_ax0(
+    ...<4 lines>...
+        )
+    )
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\pandas\core\internals\managers.py"[0m, line [35m1012[0m, in [35m_slice_take_blocks_ax0[0m
+    nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\pandas\core\internals\blocks.py"[0m, line [35m315[0m, in [35mgetitem_block_columns[0m
+    return [31mtype(self)[0m[1;31m(new_values, new_mgr_locs, self.ndim, refs=refs)[0m
+           [31m~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mKeyboardInterrupt[0m

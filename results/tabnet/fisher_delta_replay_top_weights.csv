@@ -1,21 +1,21 @@
 Transition,Rank,Weight,Change
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,1,"head.weight[0, 11]",31.48822
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,2,feature_transformers.0.linear.bias[23],23.425873
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,3,feature_transformers.1.linear.bias[23],22.807159
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,4,"head.weight[0, 1]",21.337814
-Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,5,"head.weight[0, 30]",19.409317
-Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,1,feature_transformers.0.linear.bias[60],24.800919
-Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,2,"head.weight[0, 19]",23.843109
-Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,3,attentive_transformers.0.0.bias[19],18.063175
-Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,4,feature_transformers.0.linear.bias[7],16.218597
-Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,5,"head.weight[0, 17]",15.656387
-Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,1,"head.weight[0, 0]",81.611389
-Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,2,"head.weight[0, 19]",65.014893
-Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,3,"head.weight[0, 26]",44.498428
-Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,4,"head.weight[0, 13]",39.573532
-Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,5,"head.weight[0, 8]",38.684692
-Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,1,feature_transformers.0.linear.bias[17],37.150452
-Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,2,feature_transformers.0.linear.bias[7],28.757355
-Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,3,feature_transformers.0.linear.bias[23],24.60965
-Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,4,"head.weight[0, 8]",23.755249
-Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,5,"head.weight[0, 15]",21.792435
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,1,"head.weight[0, 30]",49.077637
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,2,"head.weight[0, 24]",31.524384
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,3,"head.weight[0, 20]",29.37442
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,4,"head.weight[0, 26]",21.639999
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,5,"head.weight[0, 15]",16.158905
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,1,"head.weight[0, 30]",27.852234
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,2,"head.weight[0, 24]",23.241974
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,3,"head.weight[0, 20]",21.7724
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,4,"head.weight[0, 5]",15.388016
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,5,"head.weight[0, 26]",12.949615
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,1,"head.weight[0, 30]",43.60083
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,2,"head.weight[0, 24]",37.229172
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,3,"head.weight[0, 20]",36.943817
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,4,"head.weight[0, 5]",29.2603
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,5,"head.weight[0, 26]",27.958832
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,1,attentive_transformers.0.0.bias[20],36.351768
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,2,feature_transformers.2.linear.bias[30],34.953537
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,3,"head.weight[0, 5]",32.00177
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,4,"head.weight[0, 27]",28.020279
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,5,attentive_transformers.0.0.bias[16],27.476471

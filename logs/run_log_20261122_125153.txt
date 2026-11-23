@@ -1,0 +1,323 @@
+Logging to: C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\logs\run_log_20261122_125153.txt
+
+=================================================================
+  LOADING TEMPORAL DATA (2015 → 2017 → 2019 → 2021 → 2023)
+=================================================================
+
+  Loading BRFSS datasets...
+  BRFSS 2015: 441,225 rows | 14.7% diabetic | 29 features
+  BRFSS 2017: 449,697 rows | 15.3% diabetic | 30 features
+  BRFSS 2019: 418,098 rows | 15.9% diabetic | 29 features
+  BRFSS 2021: 438,635 rows | 15.4% diabetic | 30 features
+  BRFSS 2023: 433,028 rows | 16.2% diabetic | 30 features
+
+  Shared features across all years: 27
+
+  Scaler fitted on 2,180,683 combined rows
+
+  Building tasks:
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 1: 300,033 train | 52,947 val | 88,245 test | 14.7% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 2: 305,793 train | 53,964 val | 89,940 test | 15.3% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 3: 284,306 train | 50,172 val | 83,620 test | 15.9% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 4: 298,271 train | 52,637 val | 87,727 test | 15.4% diabetic
+C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\venv\Lib\site-packages\sklearn\utils\validation.py:2691: UserWarning: X does not have valid feature names, but StandardScaler was fitted with feature names
+  warnings.warn(
+    Task 5: 294,458 train | 51,964 val | 86,606 test | 16.2% diabetic
+
+  Input features : 27
+  Tasks          : ['Task 1 — BRFSS 2015', 'Task 2 — BRFSS 2017', 'Task 3 — BRFSS 2019', 'Task 4 — BRFSS 2021', 'Task 5 — BRFSS 2023']
+  Pos weights    : (sqrt) Task 1 — BRFSS 2015=2.41, Task 2 — BRFSS 2017=2.36, Task 3 — BRFSS 2019=2.30, Task 4 — BRFSS 2021=2.34, Task 5 — BRFSS 2023=2.27
+
+  Models to run  : FT-Transformer, TabNet
+  Lambda EWC     : FT-Transformer=500, TabNet=3000 | Replay samples: 20000
+
+=================================================================
+  MODEL: FT-Transformer (lambda_ewc=500)
+=================================================================
+
+=================================================================
+  [FT-Transformer] PHASE A: SEQUENTIAL — WITHOUT EWC (forgetting baseline)
+=================================================================
+
+Model ready — FT-Transformer | 27 input features
+  Embed dim: 64 | Heads: 4 | Layers: 2 | Dropout: 0.1
+  FFN dim: 256 | Activation: gelu | Head hidden dim: 32
+
+  [No-EWC] Training on Task 1 — BRFSS 2015...
+    Epoch 1/1 | Loss: 0.4929 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 85.81%
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 85.48%
+
+  [No-EWC] Training on Task 2 — BRFSS 2017...
+    Epoch 1/1 | Loss: 0.4857 | LR: 0.001500
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 86.02%
+    Task 2 — BRFSS 2017: 85.71%
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 85.38%
+
+  [No-EWC] Training on Task 3 — BRFSS 2019...
+    Epoch 1/1 | Loss: 0.4923 | LR: 0.001500
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 86.80%
+    Task 2 — BRFSS 2017: 86.87%
+    Task 3 — BRFSS 2019: 85.91%
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 86.12%
+
+  [No-EWC] Training on Task 4 — BRFSS 2021...
+    Epoch 1/1 | Loss: 0.5197 | LR: 0.001500
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 83.91%
+    Task 2 — BRFSS 2017: 83.45%
+    Task 3 — BRFSS 2019: 82.87%
+    Task 4 — BRFSS 2021: 83.58%
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 82.10%
+
+  [No-EWC] Training on Task 5 — BRFSS 2023...
+    Epoch 1/1 | Loss: 0.5378 | LR: 0.001500
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 83.45%
+    Task 2 — BRFSS 2017: 83.04%
+    Task 3 — BRFSS 2019: 82.44%
+    Task 4 — BRFSS 2021: 83.26%
+    Task 5 — BRFSS 2023: 82.11%
+
+  FWT baselines (from Phase A): {'Task 1 — BRFSS 2015': 85.81, 'Task 2 — BRFSS 2017': 85.71, 'Task 3 — BRFSS 2019': 85.91, 'Task 4 — BRFSS 2021': 83.58, 'Task 5 — BRFSS 2023': 82.11}
+
+=================================================================
+  [FT-Transformer] PHASE A: TRANSFER METRICS — No-EWC
+=================================================================
+
+  Backward Transfer (BWT): -2.20%
+    Task 1 — BRFSS 2015: -2.36%  ✗
+    Task 2 — BRFSS 2017: -2.67%  ✗
+    Task 3 — BRFSS 2019: -3.47%  ✗
+    Task 4 — BRFSS 2021: -0.32%  ✓
+
+  Forward Transfer (FWT): +0.44%
+    Task 2 — BRFSS 2017: -0.23%  ✗ negative
+    Task 3 — BRFSS 2019: -0.53%  ✗ negative
+    Task 4 — BRFSS 2021: +2.54%  ✓ positive
+    Task 5 — BRFSS 2023: -0.01%  ✗ negative
+
+  Full metrics — No-EWC final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 83.45%
+    Precision : 39.78%
+    Recall    : 65.35%  <- most important clinically
+    F1 Score  : 49.45%
+    AUC-ROC   : 0.8615
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 83.04%
+    Precision : 39.73%
+    Recall    : 64.14%  <- most important clinically
+    F1 Score  : 49.07%
+    AUC-ROC   : 0.8510
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 82.44%
+    Precision : 39.45%
+    Recall    : 62.18%  <- most important clinically
+    F1 Score  : 48.27%
+    AUC-ROC   : 0.8421
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 83.26%
+    Precision : 41.77%
+    Recall    : 59.11%  <- most important clinically
+    F1 Score  : 48.95%
+    AUC-ROC   : 0.8385
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 82.11%
+    Precision : 42.03%
+    Recall    : 63.11%  <- most important clinically
+    F1 Score  : 50.45%
+    AUC-ROC   : 0.8382
+
+=================================================================
+  [FT-Transformer] PHASE B: SEQUENTIAL — WITH EWC (fixed LR)
+=================================================================
+
+Model ready — FT-Transformer | 27 input features
+  Embed dim: 64 | Heads: 4 | Layers: 2 | Dropout: 0.1
+  FFN dim: 256 | Activation: gelu | Head hidden dim: 32
+
+  [EWC] Training on Task 1 — BRFSS 2015 (first year — no EWC yet)...
+    Epoch 1/1 | Loss: 0.4878 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 82.61%
+
+  Computing normalised Fisher for Task 1 — BRFSS 2015...
+  Fisher computed over 5000 samples.
+  Fisher: min=0.0000  max=3974.7932  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 82.26%
+
+  [EWC] Training on Task 2 — BRFSS 2017 (EWC protecting 1 previous year(s))...
+
+  Evaluating all years after Task 2 — BRFSS 2017:
+    Task 1 — BRFSS 2015: 86.00%
+    Task 2 — BRFSS 2017: 85.64%
+
+  Computing normalised Fisher for Task 2 — BRFSS 2017...
+  Fisher computed over 5000 samples.
+  Fisher: min=0.0000  max=4592.5371  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 3 — BRFSS 2019 before training on it: 84.87%
+
+  [EWC] Training on Task 3 — BRFSS 2019 (EWC protecting 2 previous year(s))...
+
+  Evaluating all years after Task 3 — BRFSS 2019:
+    Task 1 — BRFSS 2015: 86.00%
+    Task 2 — BRFSS 2017: 85.64%
+    Task 3 — BRFSS 2019: 84.86%
+
+  Computing normalised Fisher for Task 3 — BRFSS 2019...
+  Fisher computed over 5000 samples.
+  Fisher: min=0.0000  max=4790.4800  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 4 — BRFSS 2021 before training on it: 85.03%
+
+  [EWC] Training on Task 4 — BRFSS 2021 (EWC protecting 3 previous year(s))...
+
+  Evaluating all years after Task 4 — BRFSS 2021:
+    Task 1 — BRFSS 2015: 86.00%
+    Task 2 — BRFSS 2017: 85.64%
+    Task 3 — BRFSS 2019: 84.87%
+    Task 4 — BRFSS 2021: 85.04%
+
+  Computing normalised Fisher for Task 4 — BRFSS 2021...
+  Fisher computed over 5000 samples.
+  Fisher: min=0.0000  max=4176.4141  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 5 — BRFSS 2023 before training on it: 84.42%
+
+  [EWC] Training on Task 5 — BRFSS 2023 (EWC protecting 4 previous year(s))...
+
+  Evaluating all years after Task 5 — BRFSS 2023:
+    Task 1 — BRFSS 2015: 85.99%
+    Task 2 — BRFSS 2017: 85.61%
+    Task 3 — BRFSS 2019: 84.86%
+    Task 4 — BRFSS 2021: 85.03%
+    Task 5 — BRFSS 2023: 84.39%
+
+  Computing normalised Fisher for Task 5 — BRFSS 2023...
+  Fisher computed over 5000 samples.
+  Fisher: min=0.0000  max=4581.2715  mean=1.000000  (mean should be ~1.0)
+
+=================================================================
+  [FT-Transformer] PHASE B: TRANSFER METRICS — EWC
+=================================================================
+
+  Backward Transfer (BWT): +0.84%
+    Task 1 — BRFSS 2015: +3.38%  ✓
+    Task 2 — BRFSS 2017: -0.03%  ✓
+    Task 3 — BRFSS 2019: +0.00%  ✓
+    Task 4 — BRFSS 2021: -0.01%  ✓
+
+  Forward Transfer (FWT): -0.18%
+    Task 2 — BRFSS 2017: -3.45%  ✗ negative
+    Task 3 — BRFSS 2019: -1.04%  ✗ negative
+    Task 4 — BRFSS 2021: +1.45%  ✓ positive
+    Task 5 — BRFSS 2023: +2.31%  ✓ positive
+
+  Full metrics — EWC final model:
+
+  [Task 1 — BRFSS 2015]
+    Accuracy  : 85.99%
+    Precision : 44.56%
+    Recall    : 53.56%  <- most important clinically
+    F1 Score  : 48.65%
+    AUC-ROC   : 0.8592
+
+  [Task 2 — BRFSS 2017]
+    Accuracy  : 85.61%
+    Precision : 44.51%
+    Recall    : 52.51%  <- most important clinically
+    F1 Score  : 48.18%
+    AUC-ROC   : 0.8493
+
+  [Task 3 — BRFSS 2019]
+    Accuracy  : 84.86%
+    Precision : 43.66%
+    Recall    : 51.12%  <- most important clinically
+    F1 Score  : 47.10%
+    AUC-ROC   : 0.8399
+
+  [Task 4 — BRFSS 2021]
+    Accuracy  : 85.03%
+    Precision : 45.03%
+    Recall    : 46.74%  <- most important clinically
+    F1 Score  : 45.87%
+    AUC-ROC   : 0.8333
+
+  [Task 5 — BRFSS 2023]
+    Accuracy  : 84.39%
+    Precision : 46.32%
+    Recall    : 51.56%  <- most important clinically
+    F1 Score  : 48.80%
+    AUC-ROC   : 0.8355
+
+=================================================================
+  [FT-Transformer] PHASE C: SEQUENTIAL — WITH EWC + REPLAY BUFFER
+=================================================================
+
+Model ready — FT-Transformer | 27 input features
+  Embed dim: 64 | Heads: 4 | Layers: 2 | Dropout: 0.1
+  FFN dim: 256 | Activation: gelu | Head hidden dim: 32
+
+  [EWC+Replay] Training on Task 1 — BRFSS 2015 (first year — no EWC yet)...
+    Epoch 1/1 | Loss: 0.4925 | LR: 0.001500
+
+  Evaluating all years after Task 1 — BRFSS 2015:
+    Task 1 — BRFSS 2015: 86.71%
+
+  Storing replay samples from Task 1 — BRFSS 2015...
+  Replay buffer: stored 20000 samples | total stored tasks: 1
+
+  Computing normalised Fisher for Task 1 — BRFSS 2015...
+  Fisher computed over 5000 samples.
+  Fisher: min=0.0000  max=5002.9805  mean=1.000000  (mean should be ~1.0)
+
+  Zero-shot accuracy on Task 2 — BRFSS 2017 before training on it: 86.52%
+
+  [EWC+Replay] Training on Task 2 — BRFSS 2017 (EWC + 20,000 replay samples)...
+Traceback (most recent call last):
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\main.py"[0m, line [35m574[0m, in [35m<module>[0m
+    summaries[model_name] = [31mrun_pipeline[0m[1;31m(model_name, make_model, output_dir, lambda_ewc)[0m
+                            [31m~~~~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\main.py"[0m, line [35m403[0m, in [35mrun_pipeline[0m
+    replay_model, h = [31mtrain_ewc_replay[0m[1;31m([0m
+                      [31m~~~~~~~~~~~~~~~~[0m[1;31m^[0m
+        [1;31mreplay_model, train_loaders[i],[0m
+        [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    ...<3 lines>...
+        [1;31mwarmup_epochs=WARMUP_EPOCHS, min_lr_ratio=MIN_LR_RATIO,[0m
+        [1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1;31m)[0m
+    [1;31m^[0m
+  File [35m"C:\Thesis\Continuous Learning\BRFSS_temporal_learning_diabetes_prediction\src\train.py"[0m, line [35m208[0m, in [35mtrain_ewc_replay[0m
+    [1;31mX_rep, y_rep[0m    = replay_buffer.get_replay_batch(n_replay)
+    [1;31m^^^^^^^^^^^^[0m
+[1;35mValueError[0m: [35mtoo many values to unpack (expected 2)[0m

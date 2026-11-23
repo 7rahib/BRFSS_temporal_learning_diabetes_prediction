@@ -60,7 +60,7 @@ class EWC:
         count     = 0
 
         model.eval()
-        for X_batch, y_batch in dataloader:
+        for X_batch, y_batch, _ in dataloader:
             if self.max_samples and count >= self.max_samples:
                 break
             for i in range(len(X_batch)):

@@ -51,18 +51,15 @@ class ReplayBuffer:
         self.replay_ratio     = replay_ratio
         self.buffer_X         = []   # list of numpy arrays, one per past task
         self.buffer_y         = []   # list of numpy arrays, one per past task
+        self.buffer_w = []
 
-    def add_task(self, X_train, y_train):
-        """
-        Store a random subset of samples from a completed task.
-
-        Called after training on each task — before moving to the next.
-        Stores at most samples_per_task samples per task.
-        """
+    def add_task(self, X_train, y_train, w_train):
+       
         n = min(self.samples_per_task, len(X_train))
         idx = np.random.choice(len(X_train), size=n, replace=False)
         self.buffer_X.append(X_train[idx])
         self.buffer_y.append(y_train[idx])
+        self.buffer_w.append(w_train[idx])
         print(f"  Replay buffer: stored {n} samples | "
               f"total stored tasks: {len(self.buffer_X)}")
 
@@ -77,13 +74,15 @@ class ReplayBuffer:
         # Combine all stored past tasks
         all_X = np.concatenate(self.buffer_X, axis=0)
         all_y = np.concatenate(self.buffer_y, axis=0)
+        all_w = np.concatenate(self.buffer_w, axis=0)
 
         n   = min(batch_size, len(all_X))
         idx = np.random.choice(len(all_X), size=n, replace=False)
 
         X = torch.tensor(all_X[idx], dtype=torch.float32)
         y = torch.tensor(all_y[idx], dtype=torch.float32)
-        return X, y
+        w = torch.tensor(all_w[idx], dtype=torch.float32)
+        return X, y, w
 
     def replay_batch_size(self, current_batch_size):
         """

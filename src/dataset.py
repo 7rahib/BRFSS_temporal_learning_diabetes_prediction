@@ -33,6 +33,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
+WEIGHT_COL = 'WeightedValue'
+
 TARGET_COL         = 'Diabetes_binary'
 TARGET_CANDIDATES  = ['Diabetes_binary', 'Diabetes', 'diabetes', 'DIABETE3', 'diabete3']
 DATASET_PATHS      = {
@@ -58,6 +60,7 @@ def _load_year(path, year):
     target = _find_target(df, year)
     nums   = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
     df     = df[nums].dropna().drop_duplicates()
+    df     = df.sample(100000, random_state=0)
     if target != TARGET_COL:
         df = df.rename(columns={target: TARGET_COL})
     pct = df[TARGET_COL].mean() * 100
@@ -66,7 +69,7 @@ def _load_year(path, year):
 
 
 def _shared_features(dataframes):
-    sets   = [set(df.columns) - {TARGET_COL} for df in dataframes]
+    sets = [set(df.columns) - {TARGET_COL, WEIGHT_COL} for df in dataframes]
     shared = sorted(set.intersection(*sets))
     print(f"\n  Shared features across all years: {len(shared)}")
     return shared
@@ -75,20 +78,14 @@ def _shared_features(dataframes):
 def _make_task(df, feature_cols, scaler, task_num, val_size=0.15):
     X        = df[feature_cols].values
     y        = df[TARGET_COL].values
+    w        = (df[WEIGHT_COL] / df[WEIGHT_COL].mean()).values   # this year's weights, average = 1
     X_scaled = scaler.transform(X)
 
-    # Held-out test set — untouched until final reporting
-    X_train_full, X_test, y_train_full, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42, stratify=y
+    X_train_full, X_test, y_train_full, y_test, w_train_full, w_test = train_test_split(
+        X_scaled, y, w, test_size=0.2, random_state=42, stratify=y
     )
-
-    # Carve a validation split OUT OF THE TRAINING DATA (not the test set).
-    # This is used in Phase D to pick each task's classification threshold.
-    # Calibrating on the test set and then reporting metrics on that same
-    # test set is a mild form of leakage — picking the threshold on val
-    # and only ever touching test for the final numbers avoids that.
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_full, y_train_full, test_size=val_size,
+    X_train, X_val, y_train, y_val, w_train, w_val = train_test_split(
+        X_train_full, y_train_full, w_train_full, test_size=val_size,
         random_state=42, stratify=y_train_full
     )
 
@@ -96,11 +93,10 @@ def _make_task(df, feature_cols, scaler, task_num, val_size=0.15):
     print(f"    Task {task_num}: {len(X_train):,} train | {len(X_val):,} val | "
           f"{len(X_test):,} test | {pct:.1f}% diabetic")
     return {
-        'X_train': X_train, 'y_train': y_train,
-        'X_val':   X_val,   'y_val':   y_val,
-        'X_test':  X_test,  'y_test':  y_test,
+        'X_train': X_train, 'y_train': y_train, 'w_train': w_train,
+        'X_val':   X_val,   'y_val':   y_val,   'w_val':   w_val,
+        'X_test':  X_test,  'y_test':  y_test,  'w_test':  w_test,
     }
-
 
 def load_temporal_tasks(val_size=0.15):
     """
@@ -135,12 +131,13 @@ def load_temporal_tasks(val_size=0.15):
     return tasks, scaler, task_names, feature_cols
 
 
-def to_dataloader(X, y, batch_size=64, shuffle=True):
-    """Convert numpy arrays to a PyTorch DataLoader."""
+def to_dataloader(X, y, w, batch_size=64, shuffle=True):
+    """Convert numpy arrays to a PyTorch DataLoader that yields (X, y, survey_weight)."""
     return DataLoader(
         TensorDataset(
             torch.tensor(X, dtype=torch.float32),
             torch.tensor(y, dtype=torch.float32),
+            torch.tensor(w, dtype=torch.float32),
         ),
         batch_size=batch_size,
         shuffle=shuffle,

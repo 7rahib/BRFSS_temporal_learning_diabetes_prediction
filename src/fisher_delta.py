@@ -214,7 +214,9 @@ def compute_fisher_delta(ewc_objects, task_names, top_n=5):
             'Biggest Change':    round(biggest_change, 6),
             'Top Weights':       top_weights,
         })
-
+        baseline = np.mean([r['Magnitude Change'] for r in results[:2]])
+        for r in results:
+            r['Spike (x)'] = round(r['Magnitude Change'] / baseline, 2)
     return results
 
 

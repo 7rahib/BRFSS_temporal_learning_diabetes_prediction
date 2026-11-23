@@ -54,21 +54,13 @@ import torch
 import torch.nn as nn
 
 
-def weighted_bce_loss(logits, y, pos_weight=None):
-    """
-    Weighted binary cross-entropy.
-
-    Applies sigmoid to the model's raw logit to get a probability, then
-    computes BCELoss with a per-sample weight: positive (diabetic)
-    samples are weighted by `pos_weight`, negative samples stay at 1.0.
-    This is what corrects for class imbalance (see dataset.compute_pos_weight).
-
-    pos_weight=None -> plain, unweighted BCELoss.
-    """
-    probs = torch.sigmoid(logits)
-    if pos_weight is None:
-        return nn.functional.binary_cross_entropy(probs, y)
-    weight = torch.where(y == 1, pos_weight, torch.ones_like(y))
+def weighted_bce_loss(logits, y, pos_weight=None, sample_weight=None):
+    probs  = torch.sigmoid(logits)
+    weight = torch.ones_like(y)
+    if pos_weight is not None:
+        weight = torch.where(y == 1, pos_weight, weight)   # class weight
+    if sample_weight is not None:
+        weight = weight * sample_weight                     # survey weight
     return nn.functional.binary_cross_entropy(probs, y, weight=weight)
 
 
@@ -109,9 +101,9 @@ def train_normal(model, dataloader, epochs=50, lr=0.001, pos_weight=None,
     model.train()
     for epoch in range(epochs):
         total = 0.0
-        for X, y in dataloader:
+        for X, y, w in dataloader:
             optimizer.zero_grad()
-            loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight)
+            loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight, w)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
@@ -148,9 +140,9 @@ def train_ewc(model, dataloader, ewc_objects, lambda_, epochs=50, lr=0.001,
     for epoch in range(epochs):
         total = task_sum = ewc_sum = 0.0
 
-        for X, y in dataloader:
+        for X, y, w in dataloader:
             optimizer.zero_grad()
-            task_loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight)
+            task_loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight, w)
             ewc_loss  = sum(e.penalty(model, lambda_) for e in ewc_objects)
             loss      = task_loss + ewc_loss
             loss.backward()
@@ -208,17 +200,18 @@ def train_ewc_replay(model, dataloader, ewc_objects, replay_buffer,
     for epoch in range(epochs):
         total = task_sum = ewc_sum = 0.0
 
-        for X, y in dataloader:
+        for X, y, w in dataloader:
 
             # Augment batch with replay samples if buffer is not empty
             if not replay_buffer.is_empty:
-                n_replay        = replay_buffer.replay_batch_size(len(X))
-                X_rep, y_rep    = replay_buffer.get_replay_batch(n_replay)
+                n_replay           = replay_buffer.replay_batch_size(len(X))
+                X_rep, y_rep, w_rep = replay_buffer.get_replay_batch(n_replay)
                 X = torch.cat([X, X_rep], dim=0)
                 y = torch.cat([y, y_rep], dim=0)
+                w = torch.cat([w, w_rep], dim=0)
 
             optimizer.zero_grad()
-            task_loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight)
+            task_loss = weighted_bce_loss(model(X).reshape(-1), y, pos_weight, w)
             ewc_loss  = sum(e.penalty(model, lambda_) for e in ewc_objects)
             loss      = task_loss + ewc_loss
             loss.backward()

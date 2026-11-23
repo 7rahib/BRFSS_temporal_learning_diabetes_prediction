@@ -98,6 +98,40 @@ from src.evaluate import (
     plot_training_loss_curves,
     plot_ewc_penalty_ratio,
 )
+from src.feature_drift import permutation_importance, save_feature_drift
+
+# ───────── LOGGING: save everything printed to a file ─────────
+import os
+import sys
+from datetime import datetime
+
+class Tee:
+    """Send everything printed to the screen AND to a log file."""
+    def __init__(self, console, log):
+        self.console = console
+        self.log = log
+
+    def write(self, text):
+        self.log.write(text)
+        self.log.flush()               # flush each time, so nothing is lost if the run crashes
+        self.console.write(text)
+
+    def flush(self):
+        self.log.flush()
+        self.console.flush()
+
+    def __getattr__(self, name):       # let libraries ask for isatty(), encoding, etc.
+        return getattr(self.console, name)
+
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_PATH = os.path.join(LOG_DIR, f"run_log_{datetime.now():%Y%m%d_%H%M%S}.txt")
+_log_file = open(LOG_PATH, "w", encoding="utf-8")
+sys.stdout = Tee(sys.__stdout__, _log_file)
+sys.stderr = Tee(sys.__stderr__, _log_file)
+print(f"Logging to: {LOG_PATH}")
+# ─────────────────────────────────────────────────────────────
+
 
 # ─────────────────────────────────────────
 # REPRODUCIBILITY
@@ -192,9 +226,9 @@ section("LOADING TEMPORAL DATA (2015 → 2017 → 2019 → 2021 → 2023)")
 
 tasks, scaler, TASK_NAMES, feature_cols = load_temporal_tasks(val_size=VAL_SIZE)
 
-train_loaders = [to_dataloader(t['X_train'], t['y_train'], BATCH_SIZE)                for t in tasks]
-val_loaders   = [to_dataloader(t['X_val'],   t['y_val'],   BATCH_SIZE, shuffle=False) for t in tasks]
-test_loaders  = [to_dataloader(t['X_test'],  t['y_test'],  BATCH_SIZE, shuffle=False) for t in tasks]
+train_loaders = [to_dataloader(t['X_train'], t['y_train'], t['w_train'], BATCH_SIZE)                for t in tasks]
+val_loaders   = [to_dataloader(t['X_val'],   t['y_val'],   t['w_val'],   BATCH_SIZE, shuffle=False) for t in tasks]
+test_loaders  = [to_dataloader(t['X_test'],  t['y_test'],  t['w_test'],  BATCH_SIZE, shuffle=False) for t in tasks]
 input_size    = tasks[0]['X_train'].shape[1]
 
 # Per-task pos_weight for BCEWithLogitsLoss — corrects for the ~83-84%
@@ -291,6 +325,7 @@ def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
     ewc_histories = []
     ewc_objects   = []
     ewc_pre_accs  = {}   # zero-shot accuracy on task i, captured right before training on it
+    ewc_importance = {}
 
     for i, name in enumerate(TASK_NAMES):
         if i == 0:
@@ -315,6 +350,8 @@ def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
 
         print(f"\n  Computing normalised Fisher for {name}...")
         ewc_objects.append(EWC(ewc_model, train_loaders[i], MAX_FISHER_SAMPLES, normalise=True))
+        ewc_importance[name] = permutation_importance(
+        ewc_model, tasks[i]['X_test'], tasks[i]['y_test'], tasks[i]['w_test'])
 
     section(f"[{model_name}] PHASE B: TRANSFER METRICS — EWC")
     bwt_ewc, per_bwt_ewc = compute_backward_transfer(ewc_log, TASK_NAMES)
@@ -342,6 +379,7 @@ def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
     replay_log         = []
     replay_histories   = []
     replay_ewc_objects = []
+    replay_importance = {}
     replay_buffer      = ReplayBuffer(
         samples_per_task=REPLAY_SAMPLES_PER_TASK,
         replay_ratio=REPLAY_RATIO,
@@ -376,12 +414,15 @@ def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
 
         # Store samples from this task before moving on
         print(f"\n  Storing replay samples from {name}...")
-        replay_buffer.add_task(tasks[i]['X_train'], tasks[i]['y_train'])
+        replay_buffer.add_task(tasks[i]['X_train'], tasks[i]['y_train'], tasks[i]['w_train'])
 
         print(f"\n  Computing normalised Fisher for {name}...")
         replay_ewc_objects.append(
             EWC(replay_model, train_loaders[i], MAX_FISHER_SAMPLES, normalise=True)
         )
+        replay_importance[name] = permutation_importance(
+        replay_model, tasks[i]['X_test'], tasks[i]['y_test'], tasks[i]['w_test'])
+
 
     section(f"[{model_name}] PHASE C: TRANSFER METRICS — EWC + REPLAY")
     bwt_replay, per_bwt_replay = compute_backward_transfer(replay_log, TASK_NAMES)
@@ -414,7 +455,9 @@ def run_pipeline(model_name, make_model, output_dir, lambda_ewc):
     save_fisher_delta(replay_delta, 'fisher_delta_replay.csv', output_dir=output_dir)
     print_top_weight_breakdown(replay_delta, "EWC + Replay")
     save_top_weight_breakdown(replay_delta, 'fisher_delta_replay_top_weights.csv', output_dir=output_dir)
-
+    section(f"[{model_name}] FEATURE DRIFT: WHICH RISK FACTORS SHIFTED")
+    save_feature_drift(ewc_importance,    feature_cols, 'ewc',    output_dir)
+    save_feature_drift(replay_importance, feature_cols, 'replay', output_dir)
     # ═══════════════════════════════════════════════════════════
     # PHASE D — THRESHOLD CALIBRATION
     # ═══════════════════════════════════════════════════════════

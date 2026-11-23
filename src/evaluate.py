@@ -79,7 +79,7 @@ def get_predictions(model, dataloader):
     model.eval()
     labels_all, preds_all, probs_all = [], [], []
     with torch.no_grad():
-        for X, y in dataloader:
+        for X, y, _ in dataloader:
             logits = model(X).reshape(-1)
             probs  = torch.sigmoid(logits)
             labels_all.extend(y.cpu().numpy())
@@ -87,22 +87,27 @@ def get_predictions(model, dataloader):
             probs_all.extend(probs.cpu().numpy())
     return np.array(labels_all), np.array(preds_all), np.array(probs_all)
 
+def get_weights(dataloader):
+    """Survey weights, in the same order as get_predictions()."""
+    return dataloader.dataset.tensors[2].numpy()
 
 def evaluate(model, dataloader):
     """Return accuracy (0.0 to 1.0)."""
     labels, preds, _ = get_predictions(model, dataloader)
-    return accuracy_score(labels, preds)
+    return accuracy_score(labels, preds, sample_weight=get_weights(dataloader))
 
 
 def full_metrics(model, dataloader, task_name):
     """Compute and print all metrics. Returns dict."""
     labels, preds, probs = get_predictions(model, dataloader)
-    acc  = accuracy_score(labels, preds)
-    prec = precision_score(labels, preds, zero_division=0)
-    rec  = recall_score(labels, preds, zero_division=0)
-    f1   = f1_score(labels, preds, zero_division=0)
+    w    = get_weights(dataloader)
+    acc  = accuracy_score(labels, preds, sample_weight=w)
+    prec = precision_score(labels, preds, sample_weight=w, zero_division=0)
+    rec  = recall_score(labels, preds, sample_weight=w, zero_division=0)
+    f1   = f1_score(labels, preds, sample_weight=w, zero_division=0)
+    
     try:
-        auc = roc_auc_score(labels, probs)
+        auc  = roc_auc_score(labels, probs, sample_weight=w)
     except Exception:
         auc = float('nan')
 
@@ -231,10 +236,11 @@ def find_best_threshold(model, dataloader, beta=2.0):
     """
     labels, _, probs = get_predictions(model, dataloader)
     best_thresh, best_score, best_recall = 0.5, 0.0, 0.0
+    w = get_weights(dataloader)
     for t in np.arange(0.05, 0.90, 0.05):
         preds  = (probs >= t).astype(float)
-        prec   = precision_score(labels, preds, zero_division=0)
-        rec    = recall_score(labels, preds, zero_division=0)
+        prec = precision_score(labels, preds, sample_weight=w, zero_division=0)
+        rec  = recall_score(labels, preds, sample_weight=w, zero_division=0)
         denom  = (beta ** 2 * prec) + rec
         score  = (1 + beta ** 2) * (prec * rec) / denom if denom > 0 else 0.0
         if score > best_score:
@@ -267,12 +273,14 @@ def full_metrics_calibrated(model, dataloader, task_name, threshold):
     """Compute metrics using a task-specific threshold."""
     labels, _, probs = get_predictions(model, dataloader)
     preds = (probs >= threshold).astype(float)
-    acc   = accuracy_score(labels, preds)
-    prec  = precision_score(labels, preds, zero_division=0)
-    rec   = recall_score(labels, preds, zero_division=0)
-    f1    = f1_score(labels, preds, zero_division=0)
+    w    = get_weights(dataloader)
+    acc  = accuracy_score(labels, preds, sample_weight=w)
+    prec = precision_score(labels, preds, sample_weight=w, zero_division=0)
+    rec  = recall_score(labels, preds, sample_weight=w, zero_division=0)
+    f1   = f1_score(labels, preds, sample_weight=w, zero_division=0)
+    
     try:
-        auc = roc_auc_score(labels, probs)
+        auc  = roc_auc_score(labels, probs, sample_weight=w)
     except Exception:
         auc = float('nan')
 
@@ -558,20 +566,22 @@ def plot_confusion_matrices_calibrated(models_dict, test_loaders, task_names,
 # ──────────────────────────────────────────
 
 def plot_roc_curves(models_dict, test_loaders, task_names, output_dir='results'):
-    """ROC curves for all tasks and all three methods."""
+    """ROC curves for all tasks and all three methods (weighted by survey weight)."""
+    task_colors = ['#1565C0', '#2E7D32', '#F9A825', '#B71C1C', '#6A1B9A']
     styles      = {'No EWC': '--', 'EWC': '-', 'EWC + Replay': '-.'}
 
-    plt.figure(figsize=(9, 7))
-    for loader, name, tc in zip(test_loaders, task_names, TASK_COLORS):
+    plt.figure(figsize=(10, 8))
+    for loader, name, tc in zip(test_loaders, task_names, task_colors):
+        w = get_weights(loader)          # inside the loop, so `loader` exists
         for label, model in models_dict.items():
             labs, _, probs = get_predictions(model, loader)
             try:
-                fpr, tpr, _ = roc_curve(labs, probs)
-                auc         = roc_auc_score(labs, probs)
+                fpr, tpr, _ = roc_curve(labs, probs, sample_weight=w)
+                auc         = roc_auc_score(labs, probs, sample_weight=w)
                 plt.plot(fpr, tpr, linestyle=styles[label], linewidth=1.8,
                          color=tc, label=f'{_short(name)} {label} (AUC={auc:.3f})')
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"  ROC skipped for {name} / {label}: {e}")
 
     plt.plot([0, 1], [0, 1], 'k:', linewidth=1, label='Random')
     plt.title('ROC Curves — All Methods and Years', fontsize=14, fontweight='bold')
