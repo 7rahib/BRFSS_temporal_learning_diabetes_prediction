@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 Transition,Trend Correlation,Trend,Magnitude Change,Biggest Factor,Biggest Change,Spike (x)
 Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,0.9967,Similar (stable),0.071068,head.3.weight,79.049248,0.95
 Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,0.9981,Similar (stable),0.079038,head.3.weight,45.893066,1.05
 Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,0.9966,Similar (stable),0.09347,head.3.bias,97.386353,1.25
 Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,0.9988,Similar (stable),0.070867,head.3.bias,49.198975,0.94
+=======
+Transition,Trend Correlation,Trend,Magnitude Change,Biggest Factor,Biggest Change
+Task 1 — BRFSS 2015 -> Task 2 — BRFSS 2017,0.9981,Similar (stable),0.062976,head.3.weight,67.372879
+Task 2 — BRFSS 2017 -> Task 3 — BRFSS 2019,0.9981,Similar (stable),0.061561,head.3.weight,68.49939
+Task 3 — BRFSS 2019 -> Task 4 — BRFSS 2021,0.9991,Similar (stable),0.058387,head.3.weight,38.507278
+Task 4 — BRFSS 2021 -> Task 5 — BRFSS 2023,0.9982,Similar (stable),0.068512,head.3.weight,46.999058
+>>>>>>> e5224a4860e58355d27a23d7d4955136b7e9f5c3

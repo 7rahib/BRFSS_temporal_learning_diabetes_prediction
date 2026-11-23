@@ -1,6 +1,14 @@
 Stage,Task 1 — BRFSS 2015,Task 2 — BRFSS 2017,Task 3 — BRFSS 2019,Task 4 — BRFSS 2021,Task 5 — BRFSS 2023
+<<<<<<< HEAD
 After Task 1,85.21,,,,
 After Task 2,85.21,84.21,,,
 After Task 3,85.22,84.25,85.37,,
 After Task 4,85.21,84.25,85.38,83.66,
 After Task 5,85.21,84.25,85.38,83.66,83.99
+=======
+After Task 1,80.68,,,,
+After Task 2,80.7,80.58,,,
+After Task 3,80.71,80.58,79.74,,
+After Task 4,80.69,80.57,79.72,80.65,
+After Task 5,80.71,80.58,79.74,80.65,79.5
+>>>>>>> e5224a4860e58355d27a23d7d4955136b7e9f5c3
